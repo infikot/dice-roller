@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wheel of Decisions</title>
+    <title>Dice Roller Pro</title>
     <link rel="icon" href="https://github.githubassets.com/favicons/favicon-dark.svg" type="image/svg+xml">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -17,7 +17,8 @@
             --button-bg: #007bff;
             --button-hover-bg: #0056b3;
             --accent-color: #007bff;
-            --disabled-color: #434c5e;
+            --danger-color: #dc3545;
+            --danger-hover-color: #c82333;
             --font-family: 'Inter', sans-serif;
         }
 
@@ -47,8 +48,9 @@
             padding: 0 20px;
             height: 60px;
             z-index: 102;
+            background-color: rgba(18, 18, 18, 0.8);
+            backdrop-filter: blur(5px);
         }
-
         .header-left {
             display: flex;
             align-items: center;
@@ -100,8 +102,8 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 35px; /* Увеличенный отступ между секциями */
-            padding-right: 5px;
+            gap: 35px;
+            padding-right: 10px;
         }
         
         .main-content {
@@ -110,66 +112,136 @@
             transition: margin-left 0.3s ease-in-out;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
             padding-top: 60px;
             height: 100vh;
         }
         
-        .wheel-container {
+        #dice-tray {
+            width: 100%;
+            flex-grow: 1;
             position: relative;
-            width: 100%;
-            max-width: 550px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            perspective: 1000px;
+            overflow: hidden;
         }
-        #ticker-display {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--secondary-text-color);
-            height: 2.5rem;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        #ticker-display span {
-            display: inline-block;
-            transition: opacity 0.1s, transform 0.1s;
-        }
-        #wheelCanvas {
-            width: 100%;
-            height: auto;
-        }
-        .wheel-pointer {
-            width: 20px;
-            height: 20px;
-            background: var(--accent-color);
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        .dice-scene {
+            width: 100px;
+            height: 100px;
+            cursor: grab;
             position: absolute;
-            top: 4.5rem; /* Adjusted for ticker */
-            left: 50%;
-            transform: translateX(-50%) rotate(180deg);
-            z-index: 10;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            user-select: none;
         }
-        .spin-button {
-            margin-top: 20px;
-            padding: 15px;
-            font-size: 1.5rem;
-            font-weight: 900;
-            width: 80%;
-            max-width: 400px;
-            background-color: var(--button-bg);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
+        .dice-scene.dragging {
+            cursor: grabbing;
+            z-index: 1000;
+        }
+        .dice {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s ease-out;
+        }
+        .dice.locked {
+            filter: grayscale(1) brightness(0.7);
             cursor: pointer;
-            transition: background-color 0.2s;
         }
-        .spin-button:hover {
-            background-color: var(--button-hover-bg);
+        .dice.locked::before, .dice.locked::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 40px;
+            background-color: var(--primary-text-color);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            border-radius: 2px;
         }
+        .dice.locked::before { transform: translate(-150%, -50%); }
+        .dice.locked::after { transform: translate(50%, -50%); }
+
+        .dice-face {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #2b2b2b;
+            border: 2px solid var(--accent-color);
+            color: var(--primary-text-color);
+            font-size: 2.5rem;
+            font-weight: 900;
+            display: grid;
+            place-items: center;
+        }
+        /* D6 Cube Faces */
+        .face-1 { transform: rotateY(0deg) translateZ(50px); }
+        .face-2 { transform: rotateY(90deg) translateZ(50px); }
+        .face-3 { transform: rotateY(180deg) translateZ(50px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(50px); }
+        .face-5 { transform: rotateX(90deg) translateZ(50px); }
+        .face-6 { transform: rotateX(-90deg) translateZ(50px); }
         
+        /* Token Style for other dice */
+        .dice-scene.token .dice-face {
+            border-radius: 50%;
+            transform: translateZ(1px); /* Give it a slight 3D presence */
+        }
+        .dice-scene.token .dice-face.back {
+            transform: rotateY(180deg) translateZ(1px);
+        }
+        .dice-scene.token .dice-face .sides-display {
+            font-size: 1rem;
+            font-weight: 400;
+            position: absolute;
+            bottom: 15px;
+            color: var(--secondary-text-color);
+        }
+
+        .remove-die-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 24px;
+            height: 24px;
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .dice-scene:hover .remove-die-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .remove-die-btn:hover {
+            background-color: var(--danger-hover-color);
+        }
+
+        #result-display {
+            text-align: center;
+            padding: 10px 20px;
+            min-height: 120px;
+            background-color: rgba(18, 18, 18, 0.8);
+            border-top: 1px solid var(--input-border);
+        }
+        #total-result {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--accent-color);
+        }
+        #result-breakdown {
+            font-size: 1rem;
+            color: var(--secondary-text-color);
+            word-break: break-all;
+        }
+
         h2 {
             font-weight: 700;
             border-bottom: 2px solid var(--input-border);
@@ -182,237 +254,79 @@
             flex-direction: column;
             gap: 10px;
         }
-        .options-section .control-group {
-            margin-top: 15px;
-        }
-        #newWheelBtn {
-            margin-bottom: 15px;
-        }
-        input, select, button {
-            background-color: var(--input-bg);
-            border: 1px solid var(--input-border);
-            color: var(--primary-text-color);
+        button {
+            background-color: var(--button-bg);
+            color: #fff;
+            border: none;
             font-size: 1rem;
             padding: 10px;
             border-radius: 5px;
             font-family: inherit;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
-        input[type="text"] {
-            background: #2b2b2b;
+        button:hover {
+            background-color: var(--button-hover-bg);
         }
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
+        
+        .dice-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            gap: 10px;
         }
-        input[type=number] {
-            -moz-appearance: textfield;
+        .history-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+        #clearHistoryBtn {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            background-color: var(--danger-color);
+        }
+        #clearHistoryBtn:hover { background-color: var(--danger-hover-color); }
 
-        #optionsList {
+        .history-log {
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
         }
-        #optionsList li {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 5px;
+        .history-log li {
+            padding: 8px;
+            border-bottom: 1px solid var(--input-border);
             display: flex;
+            justify-content: space-between;
             align-items: center;
             gap: 10px;
-            transition: opacity 0.3s, color 0.3s;
         }
-        #optionsList li.disabled {
-            opacity: 0.5;
-            color: var(--secondary-text-color);
-        }
-        #optionsList li.disabled .option-text {
-            text-decoration: line-through;
-        }
-        #optionsList .option-text {
-            flex-grow: 1;
-        }
-        #optionsList .weight-btn {
-            width: 50px;
-            text-align: center;
-            padding: 5px;
-            font-size: 0.9rem;
-            background-color: #2b2b2b;
-        }
-        #optionsList .percentage-display {
-            font-size: 0.8rem;
-            color: var(--secondary-text-color);
-            width: 55px;
-            text-align: right;
-        }
-        .color-dot-label {
-            position: relative;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        .color-dot-visible {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 2px solid #444;
-            display: block;
-        }
-        .color-input-hidden {
-            opacity: 0;
-            width: 0;
-            height: 0;
-            position: absolute;
-        }
-        
-        .edit-option-btn, .delete-option {
+        .history-log li .remove-history-btn {
             background: none;
             border: none;
             color: var(--secondary-text-color);
+            cursor: pointer;
             font-size: 1.2rem;
-            cursor: pointer;
             padding: 0 5px;
-            transition: color 0.2s;
-        }
-        .edit-option-btn:hover {
-            color: var(--accent-color);
-        }
-        .delete-option:hover {
-            color: #bf616a;
-        }
-
-        .settings-section {
-            display: flex;
-            flex-direction: column;
-            gap: 15px; /* Отступ между чекбоксами */
-        }
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            user-select: none;
-        }
-        .custom-checkbox {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            background: #2b2b2b;
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
-            position: relative;
-            transition: background-color 0.2s;
             flex-shrink: 0;
         }
-        .custom-checkbox::after {
-            content: '✔';
-            color: #fff;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            transition: transform 0.2s;
-        }
-        input[type="checkbox"] {
-            display: none;
-        }
-        input[type="checkbox"]:checked + .custom-checkbox {
-            background-color: var(--accent-color);
-        }
-        input[type="checkbox"]:checked + .custom-checkbox::after {
-            transform: translate(-50%, -50%) scale(1);
+        .history-log li .remove-history-btn:hover {
+            color: var(--danger-color);
         }
 
-        .slider-control {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .slider-control .label-row {
-            display: flex;
-            justify-content: space-between;
-        }
-        input[type="range"] {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 8px;
-            background: #2b2b2b;
-            border-radius: 5px;
-            outline: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: var(--accent-color);
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            background: var(--accent-color);
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        #savedWheelsList {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        #savedWheelsList li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            border-radius: 5px;
-        }
-        #savedWheelsList li:hover {
-            background-color: #2b2b2b;
-        }
-        #savedWheelsList button {
-            padding: 5px 8px;
-            font-size: 0.8rem;
-        }
-        #resetEliminationsBtn {
-            width: 100%;
-        }
-        .import-export-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .import-export-buttons button {
-            flex-grow: 1;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--input-bg);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #555;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #777;
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--input-bg); }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
         
         .top-nav {
             display: flex;
             align-items: center;
             gap: 20px;
+        }
+        #shake-status {
+            font-size: 0.8rem;
+            color: var(--secondary-text-color);
         }
         .lang-switcher a {
             color: var(--secondary-text-color);
@@ -428,6 +342,19 @@
             border-bottom-color: var(--accent-color);
         }
         
+        #mainRollBtn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: 900;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
         .footer {
             position: fixed;
             bottom: 20px;
@@ -479,101 +406,6 @@
         #links-popup a:hover {
             background-color: rgba(255, 255, 255, 0.1);
         }
-        
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0s 0.3s;
-        }
-        .modal-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-            transition-delay: 0s;
-        }
-        .modal-content {
-            position: relative;
-            background: var(--input-bg);
-            padding: 40px;
-            border-radius: 12px;
-            text-align: center;
-            transform: scale(0.7);
-            transition: transform 0.3s;
-            min-width: 300px;
-        }
-        .modal-overlay.visible .modal-content {
-            transform: scale(1);
-        }
-        #modal-winner-text, #weight-modal-title, #text-edit-modal-title {
-            font-size: 2.5rem;
-            font-weight: 900;
-            margin: 0;
-            color: var(--accent-color);
-        }
-        #modal-winner-name {
-            font-size: 1.5rem;
-            margin-top: 10px;
-        }
-        #modal-close-btn, #weight-modal-close-btn, #text-edit-modal-close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 2rem;
-            color: var(--secondary-text-color);
-            cursor: pointer;
-        }
-        
-        #fireworks-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1001;
-        }
-        .particle {
-            position: absolute;
-            background: #fff;
-            border-radius: 50%;
-            width: 5px;
-            height: 5px;
-        }
-
-        #weight-modal-controls, #text-edit-modal-controls {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        #weight-modal-controls input[type="range"] {
-            width: 100%;
-        }
-        #weight-modal-info {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-        #weight-modal-buttons, #text-edit-modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        #weight-modal-buttons button, #text-edit-modal-buttons button {
-            flex-grow: 1;
-        }
     </style>
 </head>
 <body>
@@ -584,6 +416,7 @@
             <a href="https://infikot.github.io/" id="back-to-hub"></a>
         </div>
         <div class="top-nav">
+            <span id="shake-status"></span>
             <div class="lang-switcher">
                 <a href="#" class="lang-btn" data-lang="ru">RU</a>
                 <a href="#" class="lang-btn" data-lang="en">EN</a>
@@ -593,519 +426,348 @@
     
     <div class="sidebar">
         <div class="sidebar-content">
-            <div class="options-section">
-                <h2 id="options-header"></h2>
-                <button id="newWheelBtn"></button>
-                <div class="control-group">
-                    <input type="text" id="optionInput" />
-                    <button id="addOptionBtn"></button>
+            <div class="dice-pool-section">
+                <h2 id="dice-pool-header"></h2>
+                <div class="dice-selector">
+                    <button data-sides="4">d4</button>
+                    <button data-sides="6">d6</button>
+                    <button data-sides="8">d8</button>
+                    <button data-sides="10">d10</button>
+                    <button data-sides="12">d12</button>
+                    <button data-sides="20">d20</button>
+                    <button data-sides="100">d100</button>
                 </div>
-                <ul id="optionsList"></ul>
-                <button id="resetEliminationsBtn" style="display: none;"></button>
+                <br>
+                <button id="clearPoolBtn"></button>
             </div>
-            <div class="settings-section">
-                <h2 id="settings-header"></h2>
-                <label class="checkbox-container">
-                    <input type="checkbox" id="eliminationMode" />
-                    <span class="custom-checkbox"></span>
-                    <span id="elimination-label"></span>
-                </label>
-                <label class="checkbox-container">
-                    <input type="checkbox" id="useWeightsMode" />
-                    <span class="custom-checkbox"></span>
-                    <span id="weights-label"></span>
-                </label>
-                <div class="slider-control">
-                    <div class="label-row">
-                        <label for="spinDurationSlider" id="duration-label"></label>
-                        <span id="durationValue"></span>
-                    </div>
-                    <input type="range" id="spinDurationSlider" min="2" max="10" step="0.5">
+            <div class="history-section">
+                <div class="history-controls">
+                    <h2 id="history-header"></h2>
+                    <button id="clearHistoryBtn"></button>
                 </div>
-                <div class="slider-control">
-                    <div class="label-row">
-                        <label for="spinPowerSlider" id="power-label"></label>
-                        <span id="powerValue"></span>
-                    </div>
-                    <input type="range" id="spinPowerSlider" min="5" max="25" step="1">
-                </div>
-            </div>
-            <div class="storage-section">
-                <h2 id="storage-header"></h2>
-                <div class="control-group">
-                    <input type="text" id="wheelNameInput" />
-                    <button id="saveWheelBtn"></button>
-                </div>
-                <ul id="savedWheelsList"></ul>
-                <div class="import-export-buttons">
-                    <button id="importBtn"></button>
-                    <button id="exportBtn"></button>
-                    <input type="file" id="importFileInput" accept=".json" style="display: none;" />
-                </div>
+                <ul id="historyLog"></ul>
             </div>
         </div>
     </div>
     
     <div class="main-content">
-        <div class="wheel-container">
-            <div id="ticker-display"></div>
-            <div class="wheel-pointer"></div>
-            <canvas id="wheelCanvas" width="550" height="550"></canvas>
-        </div>
-        <button class="spin-button" id="spinBtn"></button>
-    </div>
-
-    <div class="modal-overlay" id="result-modal">
-        <div class="modal-content">
-            <button id="modal-close-btn">×</button>
-            <h3 id="modal-winner-text"></h3>
-            <p id="modal-winner-name"></p>
-        </div>
-    </div>
-    <div id="fireworks-container"></div>
-    
-    <div class="modal-overlay" id="weight-modal">
-        <div class="modal-content">
-            <button id="weight-modal-close-btn">×</button>
-            <h3 id="weight-modal-title"></h3>
-            <div id="weight-modal-controls">
-                <div id="weight-modal-info">
-                    <span id="weight-modal-percentage"></span>
-                    <input type="number" id="weight-modal-input" min="1" />
-                </div>
-                <input type="range" id="weight-modal-slider" min="1" max="100" />
-            </div>
-            <div id="weight-modal-buttons">
-                <button id="weight-modal-save"></button>
-            </div>
+        <div id="dice-tray"></div>
+        <div id="result-display">
+            <div id="total-result">0</div>
+            <div id="result-breakdown"></div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="text-edit-modal">
-        <div class="modal-content">
-            <button id="text-edit-modal-close-btn">×</button>
-            <h3 id="text-edit-modal-title"></h3>
-            <div id="text-edit-modal-controls">
-                <input type="text" id="text-edit-modal-input" />
-            </div>
-            <div id="text-edit-modal-buttons">
-                <button id="text-edit-modal-save"></button>
-            </div>
-        </div>
-    </div>
+    <button id="mainRollBtn"></button>
 
     <div class="footer">
         <span id="author-signature">by infikot</span>
         <div id="links-popup">
-             <a href="https://github.com/infikot/wheel-of-decisions" target="_blank">GitHub</a>
+             <a href="https://github.com/infikot/dice-roller" target="_blank">GitHub</a>
              <a href="https://t.me/infinite_edit" target="_blank">Telegram</a>
         </div>
     </div>
 
     <script>
         const i18n = {
-            ru: { backToHub: "← На главную", optionsHeader: "Опции", optionPlaceholder: "Новый вариант...", addBtn: "Добавить", settingsHeader: "Настройки", eliminationLabel: "Режим на выбывание", weightsLabel: "Учитывать веса", storageHeader: "Сохранённые колёса", saveNamePlaceholder: "Имя для сохранения", saveBtn: "Сохранить", loadBtn: "Загрузить", deleteBtn: "Удалить", spinBtn: "КРУТИТЬ!", resetBtn: "Вернуть выбывших", winnerMsg: "Выбыл:", finalWinnerMsg: "Победитель!", defaultWheelName: "Моё колесо", noOptionsMsg: "Добавьте варианты!", importBtn: "Импорт", exportBtn: "Экспорт", importSuccess: "Колёса успешно импортированы!", importError: "Ошибка: Неверный формат файла.", weightModalTitle: "Настроить вес", chanceLabel: "Шанс:", saveWeightBtn: "Сохранить", newWheelBtn: "Новое колесо", durationLabel: "Длительность", powerLabel: "Сила вращения", textEditModalTitle: "Изменить название", saveTextBtn: "Сохранить" },
-            en: { backToHub: "← Back to Hub", optionsHeader: "Options", optionPlaceholder: "New option...", addBtn: "Add", settingsHeader: "Settings", eliminationLabel: "Elimination Mode", weightsLabel: "Use Weights", storageHeader: "Saved Wheels", saveNamePlaceholder: "Name to save", saveBtn: "Save", loadBtn: "Load", deleteBtn: "Delete", spinBtn: "SPIN!", resetBtn: "Reset Eliminated", winnerMsg: "Eliminated:", finalWinnerMsg: "The Winner Is!", defaultWheelName: "My Wheel", noOptionsMsg: "Add options!", importBtn: "Import", exportBtn: "Export", importSuccess: "Wheels imported successfully!", importError: "Error: Invalid file format.", weightModalTitle: "Adjust Weight", chanceLabel: "Chance:", saveWeightBtn: "Save", newWheelBtn: "New Wheel", durationLabel: "Duration", powerLabel: "Spin Power", textEditModalTitle: "Edit Name", saveTextBtn: "Save" }
+            ru: { backToHub: "← На главную", dicePoolHeader: "Добавить кубик", clearPoolBtn: "Очистить всё", historyHeader: "История", clearHistoryBtn: "Очистить", historyHeader: "История бросков", shakeStatusDefault: "Встряхните для броска", shakeStatusDenied: "Встряхивание: отказано", shakeStatusGranted: "Встряхивание: активно", shakeStatusNA: "Встряхивание: н/д", rollBtn: "БРОСОК", removeEntry: "Удалить запись" },
+            en: { backToHub: "← Back to Hub", dicePoolHeader: "Add Dice", clearPoolBtn: "Clear All", historyHeader: "History", clearHistoryBtn: "Clear", historyHeader: "Roll History", shakeStatusDefault: "Shake to roll", shakeStatusDenied: "Shake: Denied", shakeStatusGranted: "Shake: Active", shakeStatusNA: "Shake: N/A", rollBtn: "ROLL", removeEntry: "Remove entry" }
         };
 
-        const canvas = document.getElementById('wheelCanvas');
-        const ctx = canvas.getContext('2d');
+        const diceTray = document.getElementById('dice-tray');
+        const totalResultDisplay = document.getElementById('total-result');
+        const resultBreakdownDisplay = document.getElementById('result-breakdown');
+        const historyLog = document.getElementById('historyLog');
         const menuToggle = document.getElementById('menu-toggle');
-        const spinBtn = document.getElementById('spinBtn');
-        const modalOverlay = document.getElementById('result-modal');
-        const modalWinnerText = document.getElementById('modal-winner-text');
-        const modalWinnerName = document.getElementById('modal-winner-name');
-        const modalCloseBtn = document.getElementById('modal-close-btn');
-        const fireworksContainer = document.getElementById('fireworks-container');
-        const weightModal = document.getElementById('weight-modal');
-        const weightModalTitle = document.getElementById('weight-modal-title');
-        const weightModalInput = document.getElementById('weight-modal-input');
-        const weightModalSlider = document.getElementById('weight-modal-slider');
-        const weightModalPercentage = document.getElementById('weight-modal-percentage');
-        const weightModalSaveBtn = document.getElementById('weight-modal-save');
-        const weightModalCloseBtn = document.getElementById('weight-modal-close-btn');
-        const textEditModal = document.getElementById('text-edit-modal');
-        const textEditModalTitle = document.getElementById('text-edit-modal-title');
-        const textEditModalInput = document.getElementById('text-edit-modal-input');
-        const textEditModalSaveBtn = document.getElementById('text-edit-modal-save');
-        const textEditModalCloseBtn = document.getElementById('text-edit-modal-close-btn');
-        const tickerDisplay = document.getElementById('ticker-display');
-        const spinDurationSlider = document.getElementById('spinDurationSlider');
-        const spinPowerSlider = document.getElementById('spinPowerSlider');
-        const durationValue = document.getElementById('durationValue');
-        const powerValue = document.getElementById('powerValue');
+        const mainRollBtn = document.getElementById('mainRollBtn');
+        const shakeStatusDisplay = document.getElementById('shake-status');
         
-        let segments = [];
-        let savedWheels = {};
-        let startAngle = 0;
-        let isSpinning = false;
+        let dicePool = [];
+        let history = JSON.parse(localStorage.getItem('diceHistory')) || [];
         let currentLang = localStorage.getItem('preferredLang') || 'ru';
-        
-        const defaultColors = ["#BF616A", "#D08770", "#EBCB8B", "#A3BE8C", "#B48EAD", "#5E81AC", "#88C0D0"];
-        let colorIndex = 0;
-        let lastTickerText = "";
+        let shakeHandler = null;
 
-        function drawWheel() {
-            const activeSegments = segments.filter(s => s.active);
-            const useWeights = document.getElementById('useWeightsMode').checked;
-            const totalValue = activeSegments.reduce((sum, s) => sum + (useWeights ? s.weight : 1), 0);
-            
-            let currentAngle = startAngle;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (totalValue === 0) {
-                return;
-            }
-            
-            const fontSize = Math.max(8, 18 - Math.floor(activeSegments.length * 0.5));
-            ctx.font = `bold ${fontSize}px ${getComputedStyle(document.body).fontFamily}`;
+        // --- Drag and Drop State ---
+        let draggedElement = null;
+        let offsetX, offsetY;
+        let isDragging = false;
 
-            segments.forEach((segment) => {
-                if (!segment.active) {
-                    return;
-                }
-                const value = useWeights ? segment.weight : 1;
-                const arc = (value / totalValue) * (Math.PI * 2);
-                ctx.fillStyle = segment.color;
-                ctx.beginPath();
-                ctx.arc(275, 275, 275, currentAngle, currentAngle + arc);
-                ctx.lineTo(275, 275);
-                ctx.fill();
+        function roll(sides) {
+            return Math.floor(Math.random() * sides) + 1;
+        }
+
+        function renderDice() {
+            diceTray.innerHTML = '';
+            dicePool.forEach((die, index) => {
+                const scene = document.createElement('div');
+                scene.className = 'dice-scene';
+                scene.dataset.index = index;
+                scene.style.left = `${die.x}px`;
+                scene.style.top = `${die.y}px`;
+
+                const cube = document.createElement('div');
+                cube.className = 'dice';
+                if (die.locked) cube.classList.add('locked');
                 
-                ctx.save();
-                ctx.fillStyle = "#ECEFF4";
-                const textAngle = currentAngle + arc / 2;
-                ctx.translate(275 + Math.cos(textAngle) * 170, 275 + Math.sin(textAngle) * 170);
-                
-                const text = segment.text.length > 15 ? segment.text.substring(0,14) + "…" : segment.text;
-                
-                if (activeSegments.length > 16) {
-                    ctx.rotate(textAngle + Math.PI);
-                    ctx.textAlign = "right";
-                } else {
-                    ctx.rotate(textAngle + Math.PI / 2);
-                    ctx.textAlign = "center";
-                }
-                
-                ctx.fillText(text, 0, 0);
-                ctx.restore();
-                currentAngle += arc;
-            });
-        }
-
-        function spin() {
-            if (isSpinning || segments.filter(s => s.active).length < 2) {
-                return;
-            }
-            isSpinning = true;
-            menuToggle.disabled = true;
-            spinBtn.disabled = true;
-            
-            let spinAngleStart = parseFloat(spinPowerSlider.value);
-            let spinTime = 0;
-            let spinTimeTotal = parseFloat(spinDurationSlider.value) * 1000;
-            
-            function rotateWheel() {
-                spinTime += 30;
-                if (spinTime >= spinTimeTotal) {
-                    stopRotateWheel();
-                    return;
-                }
-                const easeOut = (t, b, c, d) => c * ((t = t / d - 1) * t * t + 1) + b;
-                const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
-                startAngle += (spinAngle * Math.PI / 180);
-                updateTicker();
-                drawWheel();
-                requestAnimationFrame(rotateWheel);
-            }
-            rotateWheel();
-        }
-
-        function stopRotateWheel() {
-            isSpinning = false;
-            menuToggle.disabled = false;
-            spinBtn.disabled = false;
-            
-            const winner = getCurrentSegment();
-            
-            const isElimination = document.getElementById('eliminationMode').checked;
-            const activeCount = segments.filter(s => s.active).length;
-
-            if (isElimination && activeCount > 2) {
-                winner.active = false; // Silent elimination
-            } else {
-                showModal(i18n[currentLang].finalWinnerMsg, winner.text);
-                if (isElimination) {
-                    winner.active = false; // Eliminate the final loser
-                }
-            }
-            document.getElementById('resetEliminationsBtn').style.display = segments.some(s => !s.active) ? 'block' : 'none';
-            updateOptionsDisplay();
-            drawWheel();
-        }
-
-        function getCurrentSegment() {
-            const activeSegments = segments.filter(s => s.active);
-            const useWeights = document.getElementById('useWeightsMode').checked;
-            const totalValue = activeSegments.reduce((sum, s) => sum + (useWeights ? s.weight : 1), 0);
-            
-            const degrees = startAngle * 180 / Math.PI + 90;
-            let winningAngle = 360 - degrees % 360;
-            let cumulativeAngle = 0;
-
-            for (const segment of activeSegments) {
-                const value = useWeights ? segment.weight : 1;
-                const segmentAngle = (value / totalValue) * 360;
-                if (winningAngle >= cumulativeAngle && winningAngle < cumulativeAngle + segmentAngle) {
-                    return segment;
-                }
-                cumulativeAngle += segmentAngle;
-            }
-            return activeSegments[0]; // Fallback
-        }
-
-        function updateTicker() {
-            const currentSegment = getCurrentSegment();
-            if (currentSegment && currentSegment.text !== lastTickerText) {
-                animateTickerText(currentSegment.text);
-                lastTickerText = currentSegment.text;
-            }
-        }
-
-        function animateTickerText(newText) {
-            const oldText = lastTickerText;
-            let currentText = oldText.split('');
-            const newTextChars = newText.split('');
-            const maxLength = Math.max(oldText.length, newText.length);
-            let i = 0;
-            
-            function step() {
-                if (i < maxLength) {
-                    currentText[i] = newTextChars[i] || ' ';
-                    tickerDisplay.textContent = currentText.slice(0, i + 1).join('');
-                    i++;
-                    setTimeout(step, 30);
-                } else {
-                    tickerDisplay.textContent = newText;
-                }
-            }
-            step();
-        }
-
-        function showModal(title, name) {
-            modalWinnerText.textContent = title;
-            modalWinnerName.textContent = name;
-            modalOverlay.classList.add('visible');
-            createFireworks();
-        }
-
-        function hideModal() {
-            modalOverlay.classList.remove('visible');
-        }
-
-        function createFireworks() {
-            fireworksContainer.innerHTML = '';
-            for (let i = 0; i < 30; i++) {
-                const p = document.createElement('div');
-                p.className = 'particle';
-                const a = Math.random() * Math.PI * 2;
-                const r = Math.random() * 150 + 50;
-                const x = window.innerWidth / 2 + Math.cos(a) * r;
-                const y = window.innerHeight / 2 + Math.sin(a) * r;
-                p.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                p.style.left = `${window.innerWidth / 2}px`;
-                p.style.top = `${window.innerHeight / 2}px`;
-                fireworksContainer.appendChild(p);
-                setTimeout(() => {
-                    p.style.transition = 'transform 0.8s ease-out, opacity 0.8s ease-out';
-                    p.style.transform = `translate(${x - window.innerWidth/2}px, ${y - window.innerHeight/2}px)`;
-                    p.style.opacity = '0';
-                }, 10);
-                setTimeout(() => p.remove(), 900);
-            }
-        }
-
-        function openWeightModal(index) {
-            const segment = segments[index];
-            weightModal.dataset.editingIndex = index;
-            weightModalTitle.textContent = segment.text;
-            weightModalInput.value = segment.weight;
-            weightModalSlider.value = segment.weight;
-            updateWeightModalPercentage(segment.weight);
-            weightModal.classList.add('visible');
-        }
-
-        function closeWeightModal() {
-            weightModal.classList.remove('visible');
-        }
-
-        function updateWeightModalPercentage(tempWeight) {
-            const index = parseInt(weightModal.dataset.editingIndex);
-            const otherActiveWeight = segments.reduce((sum, s, i) => {
-                if (i !== index && s.active) {
-                    sum += s.weight;
-                }
-                return sum;
-            }, 0);
-            const newTotalWeight = otherActiveWeight + tempWeight;
-            const percentage = newTotalWeight > 0 ? (tempWeight / newTotalWeight * 100).toFixed(2) : 100;
-            weightModalPercentage.textContent = `${i18n[currentLang].chanceLabel} ${percentage}%`;
-        }
-        
-        function openTextEditModal(index) {
-            const segment = segments[index];
-            textEditModal.dataset.editingIndex = index;
-            textEditModalTitle.textContent = i18n[currentLang].textEditModalTitle;
-            textEditModalInput.value = segment.text;
-            textEditModal.classList.add('visible');
-        }
-
-        function closeTextEditModal() {
-            textEditModal.classList.remove('visible');
-        }
-
-        function addOption() {
-            const text = document.getElementById('optionInput').value.trim();
-            if (!text) {
-                return;
-            }
-            segments.push({ text, color: defaultColors[colorIndex++ % defaultColors.length], weight: 1, active: true });
-            document.getElementById('optionInput').value = '';
-            updateOptionsDisplay();
-            drawWheel();
-        }
-
-        function deleteOption(index) {
-            segments.splice(index, 1);
-            updateOptionsDisplay();
-            drawWheel();
-        }
-
-        function resetEliminations() {
-            segments.forEach(s => s.active = true);
-            document.getElementById('resetEliminationsBtn').style.display = 'none';
-            updateOptionsDisplay();
-            drawWheel();
-        }
-        
-        function updateOptionsDisplay() {
-            const list = document.getElementById('optionsList');
-            const useWeights = document.getElementById('useWeightsMode').checked;
-            const totalActiveWeight = segments.filter(s => s.active).reduce((sum, s) => sum + s.weight, 0);
-            list.innerHTML = '';
-            segments.forEach((segment, i) => {
-                const li = document.createElement('li');
-                li.className = segment.active ? '' : 'disabled';
-                const percentage = useWeights && totalActiveWeight > 0 ? ((segment.weight / totalActiveWeight) * 100).toFixed(1) + '%' : '';
-                li.innerHTML = `
-                    <label class="checkbox-container" style="flex-shrink:0;">
-                        <input type="checkbox" ${segment.active ? "checked" : ""} data-index="${i}" class="toggle-active">
-                        <span class="custom-checkbox"></span>
-                    </label>
-                    <label class="color-dot-label">
-                        <input type="color" value="${segment.color}" data-index="${i}" class="color-input-hidden">
-                        <span class="color-dot-visible" style="background-color: ${segment.color};"></span>
-                    </label>
-                    <button class="edit-option-btn" data-index="${i}">✎</button>
-                    <span class="option-text">${segment.text}</span>
-                    <span class="percentage-display" style="display:${useWeights ? 'block' : 'none'}">${percentage}</span>
-                    <button class="weight-btn" data-index="${i}" style="display:${useWeights ? 'block' : 'none'}">${segment.weight}</button>
-                    <button class="delete-option" data-index="${i}">×</button>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function saveCurrentWheel() {
-            const name = document.getElementById('wheelNameInput').value.trim() || i18n[currentLang].defaultWheelName;
-            if (segments.length === 0) {
-                return;
-            }
-            savedWheels[name] = segments.map(s => ({...s}));
-            localStorage.setItem('savedWheels', JSON.stringify(savedWheels));
-            updateSavedWheelsList();
-            document.getElementById('wheelNameInput').value = '';
-        }
-
-        function loadWheel(name) {
-            segments = savedWheels[name].map(s => ({...s}));
-            resetEliminations();
-        }
-
-        function deleteWheel(name) {
-            if (confirm(`Delete "${name}"?`)) {
-                delete savedWheels[name];
-                localStorage.setItem('savedWheels', JSON.stringify(savedWheels));
-                updateSavedWheelsList();
-            }
-        }
-
-        function updateSavedWheelsList() {
-            const list = document.getElementById('savedWheelsList');
-            list.innerHTML = '';
-            Object.keys(savedWheels).forEach(name => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <span>${name}</span>
-                    <div>
-                        <button data-name="${name}" class="load-wheel">${i18n[currentLang].loadBtn}</button>
-                        <button data-name="${name}" class="delete-wheel">${i18n[currentLang].deleteBtn}</button>
-                    </div>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function exportWheels() {
-            if (Object.keys(savedWheels).length === 0) {
-                return;
-            }
-            const dataStr = JSON.stringify(savedWheels, null, 2);
-            const dataBlob = new Blob([dataStr], {type: "application/json"});
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'my_wheels.json';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
-
-        function importWheels(event) {
-            const file = event.target.files[0];
-            if (!file) {
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (typeof imported !== 'object' || imported === null) {
-                        throw new Error("Invalid format");
+                if (die.sides === 6) {
+                    // Render a 6-sided cube
+                    for (let i = 1; i <= 6; i++) {
+                        const face = document.createElement('div');
+                        face.className = `dice-face face-${i}`;
+                        face.textContent = i;
+                        cube.appendChild(face);
                     }
-                    Object.assign(savedWheels, imported); // Merge, not overwrite
-                    localStorage.setItem('savedWheels', JSON.stringify(savedWheels));
-                    updateSavedWheelsList();
-                    alert(i18n[currentLang].importSuccess);
-                } catch (err) {
-                    alert(i18n[currentLang].importError);
+                } else {
+                    // Render a token for other dice
+                    scene.classList.add('token');
+                    const face = document.createElement('div');
+                    face.className = 'dice-face front';
+                    face.innerHTML = `${die.value || '?'}<span class="sides-display">d${die.sides}</span>`;
+                    const backFace = document.createElement('div'); // For flip effect
+                    backFace.className = 'dice-face back';
+                    backFace.innerHTML = `d${die.sides}`;
+                    cube.appendChild(face);
+                    cube.appendChild(backFace);
                 }
-            };
-            reader.readAsText(file);
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-die-btn';
+                removeBtn.innerHTML = '×';
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeDie(index);
+                });
+
+                scene.appendChild(cube);
+                scene.appendChild(removeBtn);
+                diceTray.appendChild(scene);
+            });
+            updateEventListeners();
         }
 
-        function loadDefaultWheel() {
-            segments = [
-                { text: "Pizza", color: "#BF616A", weight: 1, active: true },
-                { text: "Sushi", color: "#A3BE8C", weight: 1, active: true },
-                { text: "Burgers", color: "#EBCB8B", weight: 2, active: true }
-            ];
-            resetEliminations();
+        function performRoll() {
+            if (dicePool.length === 0) return;
+            let total = 0;
+            let breakdown = [];
+            
+            dicePool.forEach((die, index) => {
+                if (!die.locked) {
+                    die.value = roll(die.sides);
+                }
+                total += die.value;
+                breakdown.push(die.value);
+                
+                const sceneElement = document.querySelector(`.dice-scene[data-index='${index}']`);
+                const cubeElement = sceneElement.querySelector('.dice');
+                if (cubeElement && !die.locked) {
+                    const randomX = (Math.floor(Math.random() * 8) + 4) * 180;
+                    const randomY = (Math.floor(Math.random() * 8) + 4) * 180;
+                    cubeElement.style.transform = `rotateX(${randomX}deg) rotateY(${randomY}deg)`;
+                    
+                    setTimeout(() => {
+                        if (die.sides === 6) {
+                            const faceTransforms = { 1: 'rotateY(0deg)', 2: 'rotateY(-90deg)', 3: 'rotateY(-180deg)', 4: 'rotateY(90deg)', 5: 'rotateX(-90deg)', 6: 'rotateX(90deg)' };
+                            cubeElement.style.transform = faceTransforms[die.value];
+                        } else {
+                            const face = sceneElement.querySelector('.dice-face.front');
+                            face.innerHTML = `${die.value}<span class="sides-display">d${die.sides}</span>`;
+                            cubeElement.style.transform = 'rotateY(0deg)';
+                        }
+                    }, 1000);
+                }
+            });
+
+            setTimeout(() => {
+                totalResultDisplay.textContent = total;
+                resultBreakdownDisplay.textContent = breakdown.join(' + ');
+                addToHistory(`${total} = (${breakdown.join(' + ')})`);
+            }, 1000);
         }
 
-        function calculateDefaultDuration() {
-            const count = segments.filter(s => s.active).length;
-            return Math.min(5, 2.5 + count * 0.15);
+        function addToHistory(entry) {
+            history.unshift(entry);
+            if (history.length > 20) history.pop();
+            localStorage.setItem('diceHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyLog.innerHTML = '';
+            history.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${entry}</span><button class="remove-history-btn" data-index="${index}" title="${i18n[currentLang].removeEntry}">×</button>`;
+                historyLog.appendChild(li);
+            });
+            document.querySelectorAll('.remove-history-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.currentTarget.dataset.index);
+                    history.splice(index, 1);
+                    localStorage.setItem('diceHistory', JSON.stringify(history));
+                    renderHistory();
+                });
+            });
+        }
+        
+        function clearHistory() {
+            history = [];
+            localStorage.removeItem('diceHistory');
+            renderHistory();
+        }
+
+        function addDie(sides) {
+            const trayRect = diceTray.getBoundingClientRect();
+            const x = Math.random() * (trayRect.width - 100);
+            const y = Math.random() * (trayRect.height - 100);
+            dicePool.push({ sides, value: null, locked: false, x, y });
+            renderDice();
+        }
+        
+        function removeDie(index) {
+            dicePool.splice(index, 1);
+            renderDice();
+        }
+
+        function clearPool() {
+            dicePool = [];
+            renderDice();
+            totalResultDisplay.textContent = '0';
+            resultBreakdownDisplay.textContent = '';
+        }
+
+        function toggleLock(index) {
+            if (dicePool[index]) {
+                dicePool[index].locked = !dicePool[index].locked;
+                const cubeElement = document.querySelector(`.dice-scene[data-index='${index}'] .dice`);
+                if (cubeElement) cubeElement.classList.toggle('locked');
+            }
+        }
+
+        // --- Drag and Drop Functions ---
+        function dragStart(e) {
+            isDragging = false;
+            draggedElement = e.currentTarget;
+            const index = parseInt(draggedElement.dataset.index);
+            if (dicePool[index].locked) { // Don't drag locked dice
+                draggedElement = null;
+                return;
+            }
+
+            const event = e.type === 'touchstart' ? e.touches[0] : e;
+            offsetX = event.clientX - draggedElement.offsetLeft;
+            offsetY = event.clientY - draggedElement.offsetTop;
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchmove', dragMove, { passive: false });
+            document.addEventListener('touchend', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!draggedElement) return;
+            e.preventDefault();
+            isDragging = true;
+            draggedElement.classList.add('dragging');
+
+            const event = e.type === 'touchmove' ? e.touches[0] : e;
+            const trayRect = diceTray.getBoundingClientRect();
+            
+            let x = event.clientX - offsetX;
+            let y = event.clientY - offsetY;
+
+            // Constrain to dice tray
+            x = Math.max(0, Math.min(x, trayRect.width - draggedElement.offsetWidth));
+            y = Math.max(0, Math.min(y, trayRect.height - draggedElement.offsetHeight));
+
+            draggedElement.style.left = `${x}px`;
+            draggedElement.style.top = `${y}px`;
+        }
+
+        function dragEnd(e) {
+            if (draggedElement) {
+                const index = parseInt(draggedElement.dataset.index);
+                if (!isNaN(index) && dicePool[index]) {
+                    dicePool[index].x = draggedElement.offsetLeft;
+                    dicePool[index].y = draggedElement.offsetTop;
+                }
+                draggedElement.classList.remove('dragging');
+            }
+            
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            document.removeEventListener('touchmove', dragMove);
+            document.removeEventListener('touchend', dragEnd);
+            
+            setTimeout(() => {
+                draggedElement = null;
+                isDragging = false;
+            }, 0);
+        }
+
+        function updateEventListeners() {
+            document.querySelectorAll('.dice-scene').forEach(scene => {
+                scene.addEventListener('mousedown', dragStart);
+                scene.addEventListener('touchstart', dragStart);
+                scene.addEventListener('click', (e) => {
+                    if (!isDragging) {
+                        toggleLock(parseInt(e.currentTarget.dataset.index));
+                    }
+                });
+            });
+        }
+
+        // --- Shake to Roll ---
+        async function setupShakeToRoll() {
+            if (!('DeviceMotionEvent' in window)) {
+                shakeStatusDisplay.textContent = i18n[currentLang].shakeStatusNA;
+                return;
+            }
+            
+            try {
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    const permission = await DeviceMotionEvent.requestPermission();
+                    if (permission !== 'granted') {
+                        shakeStatusDisplay.textContent = i18n[currentLang].shakeStatusDenied;
+                        return;
+                    }
+                }
+                shakeHandler = new Shake({ threshold: 15, timeout: 1000 });
+                shakeHandler.start();
+                window.addEventListener('shake', performRoll, false);
+                shakeStatusDisplay.textContent = i18n[currentLang].shakeStatusGranted;
+            } catch (error) {
+                shakeStatusDisplay.textContent = i18n[currentLang].shakeStatusDenied;
+            }
+        }
+
+        class Shake { /* ... (Shake class remains the same) ... */
+            constructor(options) {
+                this.options = { threshold: 15, timeout: 1000, ...options };
+                this.lastTime = new Date();
+                this.lastX = null; this.lastY = null; this.lastZ = null;
+                this.event = new CustomEvent('shake');
+                this.handleDeviceMotion = this.handleDeviceMotion.bind(this);
+            }
+            start() { window.addEventListener('devicemotion', this.handleDeviceMotion, false); }
+            stop() { window.removeEventListener('devicemotion', this.handleDeviceMotion, false); }
+            handleDeviceMotion(e) {
+                const current = e.accelerationIncludingGravity;
+                if ((this.lastX === null) && (this.lastY === null) && (this.lastZ === null)) {
+                    this.lastX = current.x; this.lastY = current.y; this.lastZ = current.z;
+                    return;
+                }
+                let deltaX = Math.abs(this.lastX - current.x);
+                let deltaY = Math.abs(this.lastY - current.y);
+                let deltaZ = Math.abs(this.lastZ - current.z);
+                if (((deltaX > this.options.threshold) && (deltaY > this.options.threshold)) || ((deltaX > this.options.threshold) && (deltaZ > this.options.threshold)) || ((deltaY > this.options.threshold) && (deltaZ > this.options.threshold))) {
+                    const now = new Date();
+                    const diff = now.getTime() - this.lastTime.getTime();
+                    if (diff > this.options.timeout) {
+                        window.dispatchEvent(this.event);
+                        this.lastTime = new Date();
+                    }
+                }
+                this.lastX = current.x; this.lastY = current.y; this.lastZ = current.z;
+            }
         }
 
         function updateLanguage() {
@@ -1113,148 +775,36 @@
             document.documentElement.lang = currentLang;
             const t = i18n[currentLang];
             document.getElementById('back-to-hub').textContent = t.backToHub;
-            document.getElementById('options-header').textContent = t.optionsHeader;
-            document.getElementById('optionInput').placeholder = t.optionPlaceholder;
-            document.getElementById('addOptionBtn').textContent = t.addBtn;
-            document.getElementById('settings-header').textContent = t.settingsHeader;
-            document.getElementById('elimination-label').textContent = t.eliminationLabel;
-            document.getElementById('weights-label').textContent = t.weightsLabel;
-            document.getElementById('duration-label').textContent = t.durationLabel;
-            document.getElementById('power-label').textContent = t.powerLabel;
-            document.getElementById('storage-header').textContent = t.storageHeader;
-            document.getElementById('wheelNameInput').placeholder = t.saveNamePlaceholder;
-            document.getElementById('saveWheelBtn').textContent = t.saveBtn;
-            document.getElementById('spinBtn').textContent = t.spinBtn;
-            document.getElementById('resetEliminationsBtn').textContent = t.resetBtn;
-            document.getElementById('importBtn').textContent = t.importBtn;
-            document.getElementById('exportBtn').textContent = t.exportBtn;
-            document.getElementById('newWheelBtn').textContent = t.newWheelBtn;
-            weightModalSaveBtn.textContent = t.saveWeightBtn;
-            textEditModalSaveBtn.textContent = t.saveTextBtn;
+            document.getElementById('dice-pool-header').textContent = t.dicePoolHeader;
+            document.getElementById('clearPoolBtn').textContent = t.clearPoolBtn;
+            document.getElementById('history-header').textContent = t.historyHeader;
+            document.getElementById('clearHistoryBtn').textContent = t.clearHistoryBtn;
+            mainRollBtn.textContent = t.rollBtn;
+            
+            // Update shake status text without re-requesting permission
+            const currentStatusKey = shakeStatusDisplay.dataset.statusKey || 'shakeStatusDefault';
+            shakeStatusDisplay.textContent = t[currentStatusKey] || t.shakeStatusNA;
+
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
-            updateSavedWheelsList();
+            renderHistory(); // Re-render history to update tooltips
         }
         
         function init() {
             menuToggle.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-            spinBtn.addEventListener('click', spin);
-            document.getElementById('addOptionBtn').addEventListener('click', addOption);
-            document.getElementById('optionInput').addEventListener('keydown', e => {
-                if (e.key === 'Enter') {
-                    addOption();
-                }
+            document.querySelectorAll('.dice-selector button').forEach(btn => {
+                btn.addEventListener('click', () => addDie(parseInt(btn.dataset.sides)));
             });
-            document.getElementById('newWheelBtn').addEventListener('click', loadDefaultWheel);
+            document.getElementById('clearPoolBtn').addEventListener('click', clearPool);
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
             
-            document.getElementById('optionsList').addEventListener('input', e => {
-                const i = e.target.dataset.index;
-                if (e.target.classList.contains('color-input-hidden')) {
-                    segments[i].color = e.target.value;
-                    updateOptionsDisplay();
-                    drawWheel();
-                }
-            });
-            document.getElementById('optionsList').addEventListener('change', e => {
-                if (e.target.classList.contains('toggle-active')) {
-                    segments[e.target.dataset.index].active = e.target.checked;
-                    document.getElementById('resetEliminationsBtn').style.display = segments.some(s => !s.active) ? 'block' : 'none';
-                    updateOptionsDisplay();
-                    drawWheel();
-                }
-            });
-            document.getElementById('optionsList').addEventListener('click', e => {
-                if (e.target.classList.contains('delete-option')) {
-                    deleteOption(e.target.dataset.index);
-                }
-                if (e.target.classList.contains('weight-btn')) {
-                    openWeightModal(e.target.dataset.index);
-                }
-                if (e.target.classList.contains('edit-option-btn')) {
-                    openTextEditModal(e.target.dataset.index);
-                }
-            });
-            
-            document.getElementById('useWeightsMode').addEventListener('change', () => {
-                updateOptionsDisplay();
-                drawWheel();
-            });
-            
-            document.getElementById('saveWheelBtn').addEventListener('click', saveCurrentWheel);
-            document.getElementById('savedWheelsList').addEventListener('click', e => {
-                if (e.target.classList.contains('load-wheel')) {
-                    loadWheel(e.target.dataset.name);
-                }
-                if (e.target.classList.contains('delete-wheel')) {
-                    deleteWheel(e.target.dataset.name);
-                }
-            });
-            document.getElementById('resetEliminationsBtn').addEventListener('click', resetEliminations);
-            document.getElementById('exportBtn').addEventListener('click', exportWheels);
-            document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFileInput').click());
-            document.getElementById('importFileInput').addEventListener('change', importWheels);
-            
-            modalCloseBtn.addEventListener('click', hideModal);
-            modalOverlay.addEventListener('click', e => {
-                if (e.target === modalOverlay) {
-                    hideModal();
-                }
-            });
-            
-            weightModalCloseBtn.addEventListener('click', closeWeightModal);
-            weightModal.addEventListener('click', e => {
-                if (e.target === weightModal) {
-                    closeWeightModal();
-                }
-            });
-            weightModalInput.addEventListener('input', () => {
-                const val = parseInt(weightModalInput.value);
-                if (val > 0) {
-                    weightModalSlider.value = val;
-                    updateWeightModalPercentage(val);
-                }
-            });
-            weightModalSlider.addEventListener('input', () => {
-                const val = parseInt(weightModalSlider.value);
-                weightModalInput.value = val;
-                updateWeightModalPercentage(val);
-            });
-            weightModalSaveBtn.addEventListener('click', () => {
-                const index = parseInt(weightModal.dataset.editingIndex);
-                segments[index].weight = parseInt(weightModalInput.value) || 1;
-                closeWeightModal();
-                updateOptionsDisplay();
-                drawWheel();
-            });
+            mainRollBtn.addEventListener('click', performRoll);
 
-            textEditModalCloseBtn.addEventListener('click', closeTextEditModal);
-            textEditModal.addEventListener('click', e => {
-                if (e.target === textEditModal) {
-                    closeTextEditModal();
-                }
-            });
-            textEditModalSaveBtn.addEventListener('click', () => {
-                const index = parseInt(textEditModal.dataset.editingIndex);
-                const newText = textEditModalInput.value.trim();
-                if (newText) {
-                    segments[index].text = newText;
-                }
-                closeTextEditModal();
-                updateOptionsDisplay();
-                drawWheel();
-            });
-
-            spinDurationSlider.addEventListener('input', () => {
-                durationValue.textContent = `${spinDurationSlider.value}s`;
-            });
-            spinPowerSlider.addEventListener('input', () => {
-                powerValue.textContent = spinPowerSlider.value;
-            });
-
+            setupShakeToRoll();
+            
             document.querySelectorAll('.lang-btn').forEach(btn => {
                 btn.addEventListener('click', e => {
                     e.preventDefault();
-                    currentLang = e.target.dataset.lang;
-                    localStorage.setItem('preferredLang', currentLang);
+                    localStorage.setItem('preferredLang', e.target.dataset.lang);
                     updateLanguage();
                 });
             });
@@ -1265,31 +815,14 @@
             });
             document.addEventListener('click', (e) => {
                 const popup = document.getElementById('links-popup');
-                if (!popup.contains(e.target) && e.target.id !== 'author-signature') {
+                if (popup && !popup.contains(e.target) && e.target.id !== 'author-signature') {
                     popup.classList.remove('visible');
                 }
             });
 
-            savedWheels = JSON.parse(localStorage.getItem('savedWheels')) || {};
-            if (Object.keys(savedWheels).length === 0 && segments.length === 0) {
-                loadDefaultWheel();
-            } else if (segments.length === 0) {
-                const firstWheelName = Object.keys(savedWheels)[0];
-                if (firstWheelName) {
-                    loadWheel(firstWheelName);
-                } else {
-                    loadDefaultWheel();
-                }
-            }
-
-            spinDurationSlider.value = calculateDefaultDuration();
-            spinPowerSlider.value = 15;
-            durationValue.textContent = `${spinDurationSlider.value}s`;
-            powerValue.textContent = spinPowerSlider.value;
-
             updateLanguage();
-            updateOptionsDisplay();
-            drawWheel();
+            renderDice();
+            renderHistory();
         }
 
         init();
