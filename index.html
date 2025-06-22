@@ -9,74 +9,329 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         
         :root {
-            --bg-color: #121212; --primary-text-color: #e0e0e0; --secondary-text-color: #b0b0b0; --input-bg: #1e1e1e; --input-border: #333; --button-bg: #007bff; --button-hover-bg: #0056b3; --accent-color: #007bff; --disabled-color: #434c5e; --font-family: 'Inter', sans-serif;
+            --bg-color: #121212;
+            --primary-text-color: #e0e0e0;
+            --secondary-text-color: #b0b0b0;
+            --input-bg: #1e1e1e;
+            --input-border: #333;
+            --button-bg: #007bff;
+            --button-hover-bg: #0056b3;
+            --accent-color: #007bff;
+            --font-family: 'Inter', sans-serif;
         }
 
-        *, *::before, *::after { box-sizing: border-box; }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
 
         body {
-            background-color: var(--bg-color); color: var(--primary-text-color); font-family: var(--font-family); margin: 0; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--primary-text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow: hidden;
         }
 
         .page-header {
-            position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 60px; z-index: 102;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            height: 60px;
+            z-index: 102;
         }
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        #menu-toggle { background: none; border: none; color: var(--primary-text-color); font-size: 2rem; cursor: pointer; padding: 10px; z-index: 103; }
-        #back-to-hub { color: var(--secondary-text-color); text-decoration: none; font-weight: 700; padding: 8px 12px; border-radius: 8px; background-color: rgba(255, 255, 255, 0.05); transition: all 0.2s; }
-        #back-to-hub:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--primary-text-color); }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #menu-toggle {
+            background: none;
+            border: none;
+            color: var(--primary-text-color);
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 10px;
+            z-index: 103;
+        }
+        #back-to-hub {
+            color: var(--secondary-text-color);
+            text-decoration: none;
+            font-weight: 700;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+        #back-to-hub:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--primary-text-color);
+        }
 
         .sidebar {
-            position: fixed; top: 0; left: 0; width: 350px; height: 100vh; background-color: var(--input-bg); border-right: 1px solid var(--input-border); transform: translateX(-100%); transition: transform 0.3s ease-in-out; z-index: 101; display: flex; flex-direction: column; padding: 70px 20px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 350px;
+            height: 100vh;
+            background-color: var(--input-bg);
+            border-right: 1px solid var(--input-border);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+            padding: 70px 20px 20px;
         }
-        body.sidebar-open .sidebar { transform: translateX(0); }
-        .sidebar-content { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 35px; padding-right: 5px;}
+        body.sidebar-open .sidebar {
+            transform: translateX(0);
+        }
+        .sidebar-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+            padding-right: 5px;
+        }
         
         .main-content {
-            flex-grow: 1; margin-left: 0; transition: margin-left 0.3s ease-in-out; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px 20px; height: 100vh;
+            flex-grow: 1;
+            margin-left: 0;
+            transition: margin-left 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px 20px;
+            height: 100vh;
         }
         
         #dice-tray {
-            width: 100%; height: 60%; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 20px; perspective: 1000px;
+            width: 100%;
+            height: 60%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            perspective: 1000px;
+            padding: 20px;
         }
-        .dice-scene { width: 100px; height: 100px; }
+        .dice-scene {
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+        }
         .dice {
-            width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 1s ease-out;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s ease-out;
         }
-        .dice.locked { filter: brightness(0.7) saturate(0.5); }
+        .dice.locked {
+            filter: brightness(0.7) saturate(0.5);
+        }
         .dice-face {
-            position: absolute; width: 100px; height: 100px; background: #2b2b2b; border: 2px solid var(--accent-color); color: var(--primary-text-color); font-size: 2.5rem; font-weight: 900; display: grid; place-items: center;
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #2b2b2b;
+            border: 2px solid var(--accent-color);
+            color: var(--primary-text-color);
+            font-size: 2.5rem;
+            font-weight: 900;
+            display: grid;
+            place-items: center;
+            user-select: none;
         }
-        .face-1 { transform: rotateY(0deg) translateZ(50px); } .face-2 { transform: rotateY(90deg) translateZ(50px); } .face-3 { transform: rotateY(180deg) translateZ(50px); } .face-4 { transform: rotateY(-90deg) translateZ(50px); } .face-5 { transform: rotateX(90deg) translateZ(50px); } .face-6 { transform: rotateX(-90deg) translateZ(50px); }
+        .face-1 { transform: rotateY(0deg) translateZ(50px); }
+        .face-2 { transform: rotateY(90deg) translateZ(50px); }
+        .face-3 { transform: rotateY(180deg) translateZ(50px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(50px); }
+        .face-5 { transform: rotateX(90deg) translateZ(50px); }
+        .face-6 { transform: rotateX(-90deg) translateZ(50px); }
 
-        #result-display { text-align: center; margin-top: 20px; }
-        #total-result { font-size: 4rem; font-weight: 900; color: var(--accent-color); }
-        #result-breakdown { font-size: 1rem; color: var(--secondary-text-color); }
+        #result-display {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            min-height: 120px;
+        }
+        #total-result {
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--accent-color);
+        }
+        #result-breakdown {
+            font-size: 1rem;
+            color: var(--secondary-text-color);
+        }
 
-        h2 { font-weight: 700; border-bottom: 2px solid var(--input-border); padding-bottom: 10px; margin-top: 0; font-size: 1.2rem; }
-        .control-group { display: flex; flex-direction: column; gap: 10px; }
-        button { background-color: var(--button-bg); color: #fff; border: none; font-size: 1rem; padding: 10px; border-radius: 5px; font-family: inherit; cursor: pointer; transition: background-color 0.2s; }
-        button:hover { background-color: var(--button-hover-bg); }
+        h2 {
+            font-weight: 700;
+            border-bottom: 2px solid var(--input-border);
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            background-color: var(--button-bg);
+            color: #fff;
+            border: none;
+            font-size: 1rem;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: var(--button-hover-bg);
+        }
         
-        .dice-selector { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 10px; }
-        .history-log { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
-        .history-log li { padding: 8px; border-bottom: 1px solid var(--input-border); }
+        .dice-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            gap: 10px;
+        }
+        .history-log {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-log li {
+            padding: 8px;
+            border-bottom: 1px solid var(--input-border);
+        }
         
-        .checkbox-container { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
-        .custom-checkbox { display: inline-block; width: 20px; height: 20px; background: #2b2b2b; border: 1px solid var(--input-border); border-radius: 4px; position: relative; transition: background-color 0.2s; flex-shrink: 0; }
-        .custom-checkbox::after { content: '✔'; color: #fff; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); transition: transform 0.2s; }
-        input[type="checkbox"] { display: none; }
-        input[type="checkbox"]:checked + .custom-checkbox { background-color: var(--accent-color); }
-        input[type="checkbox"]:checked + .custom-checkbox::after { transform: translate(-50%, -50%) scale(1); }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .custom-checkbox {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: #2b2b2b;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            position: relative;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+        .custom-checkbox::after {
+            content: '✔';
+            color: #fff;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.2s;
+        }
+        input[type="checkbox"] {
+            display: none;
+        }
+        input[type="checkbox"]:checked + .custom-checkbox {
+            background-color: var(--accent-color);
+        }
+        input[type="checkbox"]:checked + .custom-checkbox::after {
+            transform: translate(-50%, -50%) scale(1);
+        }
 
-        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--input-bg); } ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #777; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--input-bg); }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
         
-        .top-nav { display: flex; align-items: center; gap: 20px; }
-        .lang-switcher a { color: var(--secondary-text-color); text-decoration: none; margin: 0 5px; font-weight: 700; padding: 5px; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .lang-switcher a.active { color: var(--primary-text-color); border-bottom-color: var(--accent-color); }
+        .top-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .lang-switcher a {
+            color: var(--secondary-text-color);
+            text-decoration: none;
+            margin: 0 5px;
+            font-weight: 700;
+            padding: 5px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .lang-switcher a.active {
+            color: var(--primary-text-color);
+            border-bottom-color: var(--accent-color);
+        }
         
-        .footer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; }
-        #author-signature { color: var(--secondary-text-color); cursor: pointer; font-size: 0.9rem; padding: 5px 10px; transition: color 0.2s; } #author-signature:hover { color: var(--primary-text-color); } #links-popup { position: absolute; bottom: 120%; left: 50%; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 10px; opacity: 0; visibility: hidden; transform: translate(-50%, 10px); transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0.3s; } #links-popup.visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0s; } #links-popup a { color: var(--primary-text-color); text-decoration: none; padding: 8px 15px; display: block; border-radius: 5px; transition: background-color 0.2s; white-space: nowrap; } #links-popup a:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+        #author-signature {
+            color: var(--secondary-text-color);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            transition: color 0.2s;
+        }
+        #author-signature:hover {
+            color: var(--primary-text-color);
+        }
+        #links-popup {
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, 10px);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0.3s;
+        }
+        #links-popup.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, 0);
+            transition-delay: 0s;
+        }
+        #links-popup a {
+            color: var(--primary-text-color);
+            text-decoration: none;
+            padding: 8px 15px;
+            display: block;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        #links-popup a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -99,7 +354,13 @@
             <div class="dice-pool-section">
                 <h2 id="dice-pool-header"></h2>
                 <div class="dice-selector">
-                    <button data-sides="4">d4</button> <button data-sides="6">d6</button> <button data-sides="8">d8</button> <button data-sides="10">d10</button> <button data-sides="12">d12</button> <button data-sides="20">d20</button> <button data-sides="100">d100</button>
+                    <button data-sides="4">d4</button>
+                    <button data-sides="6">d6</button>
+                    <button data-sides="8">d8</button>
+                    <button data-sides="10">d10</button>
+                    <button data-sides="12">d12</button>
+                    <button data-sides="20">d20</button>
+                    <button data-sides="100">d100</button>
                 </div>
                 <br>
                 <button id="clearPoolBtn"></button>
@@ -125,6 +386,7 @@
             <div id="total-result">0</div>
             <div id="result-breakdown"></div>
         </div>
+        <button id="mainRollBtn"></button>
     </div>
 
     <div class="footer">
@@ -137,8 +399,8 @@
 
     <script>
         const i18n = {
-            ru: { backToHub: "← На главную", dicePoolHeader: "Кубики для броска", clearPoolBtn: "Очистить", settingsHeader: "Настройки", shakeLabel: "Бросок встряхиванием", historyHeader: "История бросков", permissionNeeded: "Нужно разрешение на доступ к датчикам движения.", permissionGranted: "Бросок встряхиванием активен!", permissionDenied: "Доступ к датчикам запрещён." },
-            en: { backToHub: "← Back to Hub", dicePoolHeader: "Dice Pool", clearPoolBtn: "Clear Pool", settingsHeader: "Settings", shakeLabel: "Shake to Roll", historyHeader: "Roll History", permissionNeeded: "Motion sensor permission is required.", permissionGranted: "Shake to roll is active!", permissionDenied: "Motion sensor access denied." }
+            ru: { backToHub: "← На главную", dicePoolHeader: "Добавить кубик", clearPoolBtn: "Очистить всё", settingsHeader: "Настройки", shakeLabel: "Бросок встряхиванием", historyHeader: "История бросков", permissionNeeded: "Нужно разрешение на доступ к датчикам движения.", permissionGranted: "Бросок встряхиванием активен!", permissionDenied: "Доступ к датчикам запрещён.", rollBtn: "БРОСОК" },
+            en: { backToHub: "← Back to Hub", dicePoolHeader: "Add Dice", clearPoolBtn: "Clear All", settingsHeader: "Settings", shakeLabel: "Shake to Roll", historyHeader: "Roll History", permissionNeeded: "Motion sensor permission is required.", permissionGranted: "Shake to roll is active!", permissionDenied: "Motion sensor access denied.", rollBtn: "ROLL" }
         };
 
         const diceTray = document.getElementById('dice-tray');
@@ -146,6 +408,7 @@
         const resultBreakdownDisplay = document.getElementById('result-breakdown');
         const historyLog = document.getElementById('historyLog');
         const menuToggle = document.getElementById('menu-toggle');
+        const mainRollBtn = document.getElementById('mainRollBtn');
         
         let dicePool = [];
         let history = [];
@@ -163,7 +426,9 @@
                 scene.className = 'dice-scene';
                 const cube = document.createElement('div');
                 cube.className = 'dice';
-                if (die.locked) cube.classList.add('locked');
+                if (die.locked) {
+                    cube.classList.add('locked');
+                }
                 cube.dataset.index = index;
 
                 // For simplicity, we'll only render a d6 visually
@@ -191,20 +456,20 @@
                 
                 const cubeElement = document.querySelector(`.dice[data-index='${index}']`);
                 if (cubeElement) {
-                    // Random rotation for visual effect
-                    const randomX = (Math.floor(Math.random() * 4) + 1) * 90;
-                    const randomY = (Math.floor(Math.random() * 4) + 1) * 90;
+                    const randomX = (Math.floor(Math.random() * 8) + 4) * 90;
+                    const randomY = (Math.floor(Math.random() * 8) + 4) * 90;
                     cubeElement.style.transform = `rotateX(${randomX}deg) rotateY(${randomY}deg)`;
                     
                     setTimeout(() => {
-                        // Show the result on the face after animation
                         const faces = cubeElement.querySelectorAll('.dice-face');
                         faces.forEach(face => face.textContent = die.value);
-                        // A simple transform to show a specific face (can be improved)
+                        
                         const faceTransforms = {
                             1: 'rotateY(0deg)', 2: 'rotateY(-90deg)', 3: 'rotateY(-180deg)', 4: 'rotateY(90deg)', 5: 'rotateX(-90deg)', 6: 'rotateX(90deg)'
                         };
-                        cubeElement.style.transform = faceTransforms[die.value] || 'rotateY(0deg)';
+                        // For non-d6, we just show the number on the front face
+                        const finalTransform = (die.sides === 6 && die.value <= 6) ? faceTransforms[die.value] : 'rotateY(0deg)';
+                        cubeElement.style.transform = finalTransform;
                     }, 1000);
                 }
             });
@@ -217,7 +482,9 @@
 
         function addToHistory(entry) {
             history.unshift(entry);
-            if (history.length > 10) history.pop();
+            if (history.length > 10) {
+                history.pop();
+            }
             renderHistory();
         }
 
@@ -245,7 +512,10 @@
         function toggleLock(index) {
             if (dicePool[index] && dicePool[index].value !== null) {
                 dicePool[index].locked = !dicePool[index].locked;
-                renderDice();
+                const cubeElement = document.querySelector(`.dice[data-index='${index}']`);
+                if (cubeElement) {
+                    cubeElement.classList.toggle('locked');
+                }
             }
         }
 
@@ -289,7 +559,6 @@
             });
         }
 
-        // Simple Shake detection class
         class Shake {
             constructor(options) {
                 this.options = { threshold: 15, timeout: 1000, ...options };
@@ -329,8 +598,11 @@
             document.getElementById('dice-pool-header').textContent = t.dicePoolHeader;
             document.getElementById('clearPoolBtn').textContent = t.clearPoolBtn;
             document.getElementById('settings-header').textContent = t.settingsHeader;
-            document.getElementById('shake-label').textContent = document.getElementById('shakeToRoll').checked ? t.permissionGranted : t.shakeLabel;
+            const shakeCheckbox = document.getElementById('shakeToRoll');
+            document.getElementById('shake-label').textContent = shakeCheckbox.checked ? t.permissionGranted : t.shakeLabel;
+            if (shakeCheckbox.disabled) document.getElementById('shake-label').textContent = "Shake not supported";
             document.getElementById('history-header').textContent = t.historyHeader;
+            mainRollBtn.textContent = t.rollBtn;
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
         }
         
@@ -347,13 +619,7 @@
                 }
             });
             
-            // Main roll button on the tray itself for desktop
-            const mainRollButton = document.createElement('button');
-            mainRollButton.textContent = "ROLL";
-            mainRollButton.style.fontSize = "2rem";
-            mainRollButton.style.padding = "20px 40px";
-            mainRollButton.addEventListener('click', performRoll);
-            document.querySelector('.main-content').appendChild(mainRollButton);
+            mainRollBtn.addEventListener('click', performRoll);
 
             setupShakeToRoll();
             
@@ -372,7 +638,7 @@
             });
             document.addEventListener('click', (e) => {
                 const popup = document.getElementById('links-popup');
-                if (!popup.contains(e.target) && e.target.id !== 'author-signature') {
+                if (popup && !popup.contains(e.target) && e.target.id !== 'author-signature') {
                     popup.classList.remove('visible');
                 }
             });
