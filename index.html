@@ -134,8 +134,6 @@
             color: var(--accent-color);
             line-height: 1;
             min-height: 150px;
-            transform: scale(1);
-            opacity: 1;
             transition: transform 0.3s ease-out, opacity 0.3s ease-out;
         }
 
@@ -145,7 +143,6 @@
             min-height: 2rem;
             word-break: break-all;
         }
-        /* Style for the highlighted roll result */
         .roll-highlight {
             color: var(--accent-color);
             font-weight: 900;
@@ -163,10 +160,15 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, opacity 0.2s;
         }
         .roll-button:hover {
             background-color: var(--button-hover-bg);
+        }
+        .roll-button:disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+            opacity: 0.7;
         }
         
         h2 {
@@ -346,7 +348,6 @@
     
     <div class="sidebar">
         <div class="sidebar-content">
-            <!-- Simple Mode -->
             <div class="dice-selection-section">
                 <h2 id="select-dice-header"></h2>
                 <div id="dicePoolDisplay"></div>
@@ -363,12 +364,10 @@
                     <button class="mod-btn" data-value="-1">-1</button>
                 </div>
             </div>
-            <!-- Advanced Mode -->
             <div class="formula-section">
                 <h2 id="formula-header"></h2>
                 <input type="text" id="formulaInput" placeholder="2d6 + 5">
             </div>
-            <!-- History and Settings -->
             <div class="history-section">
                 <h2 id="history-header"></h2>
                 <ul id="historyList"></ul>
@@ -403,37 +402,10 @@
 
     <script>
         const i18n = {
-            ru: {
-                backToHub: "← На главную",
-                rollBtn: "БРОСОК!",
-                selectDiceHeader: "Выберите кости",
-                clearPoolBtn: "Очистить",
-                formulaHeader: "Ручная формула",
-                historyHeader: "История",
-                settingsHeader: "Настройки",
-                shakeLabel: "Бросок встряхиванием",
-                clearHistoryBtn: "Очистить историю",
-                initialBreakdown: "Выберите кости или введите формулу",
-                emptyRoll: "Нечего бросать!",
-                errorMsg: "Ошибка в формуле"
-            },
-            en: {
-                backToHub: "← Back to Hub",
-                rollBtn: "ROLL!",
-                selectDiceHeader: "Select Dice",
-                clearPoolBtn: "Clear",
-                formulaHeader: "Manual Formula",
-                historyHeader: "History",
-                settingsHeader: "Settings",
-                shakeLabel: "Shake to Roll",
-                clearHistoryBtn: "Clear History",
-                initialBreakdown: "Select dice or enter a formula",
-                emptyRoll: "Nothing to roll!",
-                errorMsg: "Invalid formula"
-            }
+            ru: { backToHub: "← На главную", rollBtn: "БРОСОК!", selectDiceHeader: "Выберите кости", clearPoolBtn: "Очистить", formulaHeader: "Ручная формула", historyHeader: "История", settingsHeader: "Настройки", shakeLabel: "Бросок встряхиванием", clearHistoryBtn: "Очистить историю", initialBreakdown: "Выберите кости или введите формулу", emptyRoll: "Нечего бросать!", errorMsg: "Ошибка в формуле" },
+            en: { backToHub: "← Back to Hub", rollBtn: "ROLL!", selectDiceHeader: "Select Dice", clearPoolBtn: "Clear", formulaHeader: "Manual Formula", historyHeader: "History", settingsHeader: "Settings", shakeLabel: "Shake to Roll", clearHistoryBtn: "Clear History", initialBreakdown: "Select dice or enter a formula", emptyRoll: "Nothing to roll!", errorMsg: "Invalid formula" }
         };
 
-        // --- DOM Elements ---
         const menuToggle = document.getElementById('menu-toggle');
         const formulaInput = document.getElementById('formulaInput');
         const rollBtn = document.getElementById('rollBtn');
@@ -443,87 +415,76 @@
         const clearHistoryBtn = document.getElementById('clearHistoryBtn');
         const dicePoolDisplay = document.getElementById('dicePoolDisplay');
         const clearPoolBtn = document.getElementById('clearPoolBtn');
+        const shakeToRollCheckbox = document.getElementById('shakeToRoll');
         
         let currentLang = localStorage.getItem('preferredLang') || 'ru';
         let history = [];
         let dicePool = [];
         let isRolling = false;
+        let shakeEnabled = false;
 
-        // --- Dice Pool Logic (Simple Mode) ---
-        function addToPool(item) {
-            dicePool.push(item);
-            renderPool();
-        }
-
+        function addToPool(item) { dicePool.push(item); renderPool(); }
         function renderPool() {
             dicePoolDisplay.innerHTML = '';
             dicePool.forEach((item, index) => {
                 const span = document.createElement('span');
                 span.classList.add('pool-item');
-                span.dataset.index = index; // Add index for removal
-                if (item.type === 'dice') {
-                    span.textContent = `d${item.sides}`;
-                } else {
-                    span.textContent = item.value > 0 ? `+${item.value}` : `${item.value}`;
-                    span.classList.add('modifier');
-                }
+                span.dataset.index = index;
+                if (item.type === 'dice') { span.textContent = `d${item.sides}`; } 
+                else { span.textContent = item.value > 0 ? `+${item.value}` : `${item.value}`; span.classList.add('modifier'); }
                 dicePoolDisplay.appendChild(span);
             });
         }
-
-        function clearPool() {
-            dicePool = [];
-            renderPool();
-        }
+        function clearPool() { dicePool = []; renderPool(); }
 
         function rollFromPool() {
-            if (dicePool.length === 0) {
-                return { total: 'Error', breakdown: i18n[currentLang].emptyRoll };
-            }
-
-            let total = 0;
-            let breakdownParts = [];
+            if (dicePool.length === 0) return { error: i18n[currentLang].emptyRoll };
+            
+            let total = 0, minTotal = 0, maxTotal = 0;
+            let breakdownParts = [], individualRolls = [];
+            let rollIndex = 0;
 
             dicePool.forEach(item => {
                 if (item.type === 'dice') {
                     const roll = Math.floor(Math.random() * item.sides) + 1;
                     total += roll;
-                    breakdownParts.push(`d${item.sides}(<span class="roll-highlight">${roll}</span>)`);
+                    minTotal += 1;
+                    maxTotal += item.sides;
+                    individualRolls.push(roll);
+                    breakdownParts.push(`d${item.sides}(<span class="animated-roll" data-roll-index="${rollIndex++}">${roll}</span>)`);
                 } else {
                     total += item.value;
+                    minTotal += item.value;
+                    maxTotal += item.value;
                     const sign = item.value > 0 ? '+' : '-';
                     breakdownParts.push(`${sign} ${Math.abs(item.value)}`);
                 }
             });
             
-            const breakdown = breakdownParts.join(' ').replace(/^ \+ /g, '');
-            return { total, breakdown: `${breakdown} = ${total}` };
+            const breakdownHTML = `${breakdownParts.join(' ').replace(/^ \+ /g, '')} = <span id="breakdown-total">${total}</span>`;
+            return { total, breakdownHTML, individualRolls, minTotal, maxTotal };
         }
 
-        // --- Formula Parsing Logic (Advanced Mode) ---
         function parseAndRoll(formula) {
             try {
                 let processedFormula = formula.toLowerCase().replace(/\s/g, '');
-                if (!/^[+-]/.test(processedFormula)) {
-                    processedFormula = '+' + processedFormula;
-                }
+                if (!/^[+-]/.test(processedFormula)) processedFormula = '+' + processedFormula;
 
                 const regex = /([+-])(\d*d\d+|\d+)/g;
                 let matches;
-                let total = 0;
-                let breakdownParts = [];
+                let total = 0, minTotal = 0, maxTotal = 0;
+                let breakdownParts = [], individualRolls = [];
+                let rollIndex = 0;
                 
                 while ((matches = regex.exec(processedFormula)) !== null) {
                     const sign = matches[1];
                     const term = matches[2];
                     let termValue = 0;
-                    let termBreakdown = '';
 
                     if (term.includes('d')) {
                         let [numDice, numSides] = term.split('d');
                         numDice = numDice === '' ? 1 : parseInt(numDice);
                         numSides = parseInt(numSides);
-
                         if (isNaN(numDice) || isNaN(numSides) || numDice < 1 || numSides < 1 || numDice > 100 || numSides > 1000) continue;
 
                         let rolls = [];
@@ -532,79 +493,88 @@
                             rolls.push(roll);
                             termValue += roll;
                         }
-                        const highlightedRolls = rolls.map(r => `<span class="roll-highlight">${r}</span>`).join(',');
-                        termBreakdown = `${numDice}d${numSides}(${highlightedRolls})`;
+                        
+                        const signMultiplier = (sign === '+') ? 1 : -1;
+                        total += termValue * signMultiplier;
+                        minTotal += numDice * 1 * signMultiplier;
+                        maxTotal += numDice * numSides * signMultiplier;
+                        individualRolls.push(...rolls);
+                        
+                        const highlightedRolls = rolls.map(r => `<span class="animated-roll" data-roll-index="${rollIndex++}">${r}</span>`).join(',');
+                        breakdownParts.push(`${sign} ${numDice}d${numSides}(${highlightedRolls})`);
                     } else {
-                        termValue = parseInt(term);
-                        termBreakdown = termValue.toString();
+                        const val = parseInt(term);
+                        total += (sign === '+') ? val : -val;
+                        minTotal += (sign === '+') ? val : -val;
+                        maxTotal += (sign === '+') ? val : -val;
+                        breakdownParts.push(`${sign} ${val}`);
                     }
-
-                    if (sign === '+') {
-                        total += termValue;
-                    } else {
-                        total -= termValue;
-                    }
-                    breakdownParts.push(`${sign} ${termBreakdown}`);
                 }
                 
                 if (breakdownParts.length === 0) throw new Error("No valid terms found");
 
-                let finalBreakdown = breakdownParts.join(' ').replace(/^\+ /, '');
-                return { total, breakdown: `${finalBreakdown} = ${total}` };
-
+                const breakdownHTML = `${breakdownParts.join(' ').replace(/^\+ /, '')} = <span id="breakdown-total">${total}</span>`;
+                return { total, breakdownHTML, individualRolls, minTotal, maxTotal };
             } catch (error) {
-                console.error(error);
-                return { total: 'Error', breakdown: i18n[currentLang].errorMsg };
+                return { error: i18n[currentLang].errorMsg };
             }
         }
 
-        // --- Animation ---
-        function animateResult(finalTotal) {
+        function animateResult(result) {
             isRolling = true;
             rollBtn.disabled = true;
-            let animationDuration = 1000;
-            let stepTime = 50;
-            let steps = animationDuration / stepTime;
+            
+            const { total, individualRolls, minTotal, maxTotal } = result;
+            const animationDuration = 1200;
+            const stepTime = 50;
+            const steps = animationDuration / stepTime;
             let currentStep = 0;
 
+            const animatedRollSpans = document.querySelectorAll('.animated-roll');
+            const breakdownTotalSpan = document.getElementById('breakdown-total');
+
             const animationInterval = setInterval(() => {
-                resultDisplay.textContent = Math.floor(Math.random() * 100);
+                const randomTotal = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
+                resultDisplay.textContent = randomTotal;
+                if (breakdownTotalSpan) breakdownTotalSpan.textContent = randomTotal;
+
+                animatedRollSpans.forEach(span => {
+                    span.textContent = Math.floor(Math.random() * 99) + 1;
+                });
+
                 currentStep++;
                 if (currentStep >= steps) {
                     clearInterval(animationInterval);
-                    resultDisplay.textContent = finalTotal;
+                    resultDisplay.textContent = total;
+                    if (breakdownTotalSpan) breakdownTotalSpan.textContent = total;
+                    animatedRollSpans.forEach((span, index) => {
+                        span.textContent = individualRolls[index];
+                    });
                     isRolling = false;
                     rollBtn.disabled = false;
                 }
             }, stepTime);
         }
 
-        // --- Main Handler ---
         function handleRoll() {
             if (isRolling) return;
 
             const formula = formulaInput.value.trim();
-            let result;
+            const result = formula ? parseAndRoll(formula) : rollFromPool();
 
-            if (formula) {
-                result = parseAndRoll(formula);
-            } else {
-                result = rollFromPool();
-            }
-
-            breakdownDisplay.innerHTML = result.breakdown;
-
-            if (result.total !== 'Error') {
-                animateResult(result.total);
-                addToHistory(result);
-            } else {
+            if (result.error) {
+                breakdownDisplay.innerHTML = result.error;
                 resultDisplay.textContent = 'Err';
+                return;
             }
+            
+            breakdownDisplay.innerHTML = result.breakdownHTML;
+            animateResult(result);
+            addToHistory(result);
         }
 
-        // --- History Logic ---
         function addToHistory(result) {
-            history.unshift(result);
+            history.unshift({ total: result.total, breakdownHTML: result.breakdownHTML });
             if (history.length > 50) history.pop();
             renderHistory();
         }
@@ -613,25 +583,18 @@
             historyList.innerHTML = '';
             history.forEach(item => {
                 const li = document.createElement('li');
-                li.innerHTML = `<span class="history-breakdown">${item.breakdown}</span><span class="history-result">${item.total}</span>`;
+                li.innerHTML = `<span class="history-breakdown">${item.breakdownHTML}</span><span class="history-result">${item.total}</span>`;
                 historyList.appendChild(li);
             });
         }
+        function clearHistory() { history = []; renderHistory(); }
 
-        function clearHistory() {
-            history = [];
-            renderHistory();
-        }
-
-        // --- Shake to Roll Logic ---
-        let shakeEnabled = false;
         let lastShakeTime = 0;
         const shakeThreshold = 15;
-
         function handleDeviceMotion(event) {
             if (!shakeEnabled || isRolling) return;
             const now = Date.now();
-            if (now - lastShakeTime < 1500) return; // Cooldown
+            if (now - lastShakeTime < 1500) return;
 
             const acc = event.accelerationIncludingGravity;
             const magnitude = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
@@ -642,7 +605,6 @@
             }
         }
 
-        // --- UI and Language ---
         function updateLanguage() {
             currentLang = localStorage.getItem('preferredLang') || 'ru';
             document.documentElement.lang = currentLang;
@@ -662,38 +624,30 @@
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
         }
 
-        // --- Initialization ---
         function init() {
-            // Event Listeners
             menuToggle.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
             rollBtn.addEventListener('click', handleRoll);
             formulaInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleRoll(); });
             clearPoolBtn.addEventListener('click', clearPool);
             clearHistoryBtn.addEventListener('click', clearHistory);
 
-            document.querySelectorAll('.dice-btn').forEach(btn => {
-                btn.addEventListener('click', () => addToPool({ type: 'dice', sides: parseInt(btn.dataset.sides) }));
-            });
-            document.querySelectorAll('.mod-btn').forEach(btn => {
-                btn.addEventListener('click', () => addToPool({ type: 'modifier', value: parseInt(btn.dataset.value) }));
-            });
+            document.querySelectorAll('.dice-btn').forEach(btn => btn.addEventListener('click', () => addToPool({ type: 'dice', sides: parseInt(btn.dataset.sides) })));
+            document.querySelectorAll('.mod-btn').forEach(btn => btn.addEventListener('click', () => addToPool({ type: 'modifier', value: parseInt(btn.dataset.value) })));
 
-            // Click to remove from pool
             dicePoolDisplay.addEventListener('click', (e) => {
                 if (e.target.classList.contains('pool-item')) {
                     const index = parseInt(e.target.dataset.index, 10);
-                    if (!isNaN(index)) {
-                        dicePool.splice(index, 1);
-                        renderPool();
-                    }
+                    if (!isNaN(index)) { dicePool.splice(index, 1); renderPool(); }
                 }
             });
 
-            document.getElementById('shakeToRoll').addEventListener('change', e => { shakeEnabled = e.target.checked; });
+            shakeToRollCheckbox.addEventListener('change', e => { shakeEnabled = e.target.checked; });
             if (window.DeviceMotionEvent) {
                 window.addEventListener('devicemotion', handleDeviceMotion);
+                shakeToRollCheckbox.checked = true; // Enable by default
+                shakeEnabled = true;
             } else {
-                document.getElementById('shakeToRoll').parentElement.style.display = 'none';
+                shakeToRollCheckbox.parentElement.style.display = 'none';
             }
 
             document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -715,7 +669,6 @@
                 }
             });
 
-            // Initial Setup
             updateLanguage();
             renderHistory();
             renderPool();
