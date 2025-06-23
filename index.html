@@ -437,84 +437,96 @@
         }
         function clearPool() { dicePool = []; renderPool(); }
 
-        function rollFromPool() {
+        function createRollResult(rollFn) {
+            const result = rollFn();
+            if (result.error) return result;
+
+            let breakdownParts = [];
+            let rollIndex = 0;
+            let modifierSum = 0;
+
+            result.dice.forEach(die => {
+                const roll = Math.floor(Math.random() * die.sides) + 1;
+                die.result = roll;
+                breakdownParts.push(`${die.count}d${die.sides}(<span class="roll-highlight" data-sides="${die.sides}" data-final-roll="${roll}">${roll}</span>)`);
+            });
+            
+            result.modifiers.forEach(mod => {
+                modifierSum += mod;
+                const sign = mod > 0 ? '+' : '-';
+                breakdownParts.push(`${sign} ${Math.abs(mod)}`);
+            });
+
+            const diceTotal = result.dice.reduce((sum, die) => sum + die.result, 0);
+            result.total = diceTotal + modifierSum;
+            
+            result.breakdownHTML = `${breakdownParts.join(' ')} = <span class="roll-highlight" id="breakdown-total" data-final-roll="${result.total}">${result.total}</span>`;
+            return result;
+        }
+
+        function getPoolData() {
             if (dicePool.length === 0) return { error: i18n[currentLang].emptyRoll };
             
-            let total = 0, minTotal = 0, maxTotal = 0;
-            let breakdownParts = [], individualRolls = [];
-            let rollIndex = 0;
+            const result = { dice: [], modifiers: [], minTotal: 0, maxTotal: 0 };
+            let diceCounts = {};
 
             dicePool.forEach(item => {
                 if (item.type === 'dice') {
-                    const roll = Math.floor(Math.random() * item.sides) + 1;
-                    total += roll;
-                    minTotal += 1;
-                    maxTotal += item.sides;
-                    individualRolls.push(roll);
-                    breakdownParts.push(`d${item.sides}(<span class="animated-roll" data-roll-index="${rollIndex++}">${roll}</span>)`);
+                    diceCounts[item.sides] = (diceCounts[item.sides] || 0) + 1;
                 } else {
-                    total += item.value;
-                    minTotal += item.value;
-                    maxTotal += item.value;
-                    const sign = item.value > 0 ? '+' : '-';
-                    breakdownParts.push(`${sign} ${Math.abs(item.value)}`);
+                    result.modifiers.push(item.value);
                 }
             });
+
+            for (const sides in diceCounts) {
+                const count = diceCounts[sides];
+                result.dice.push({ sides: parseInt(sides), count: count, result: 0 });
+                result.minTotal += count * 1;
+                result.maxTotal += count * parseInt(sides);
+            }
             
-            const breakdownHTML = `${breakdownParts.join(' ').replace(/^ \+ /g, '')} = <span id="breakdown-total">${total}</span>`;
-            return { total, breakdownHTML, individualRolls, minTotal, maxTotal };
+            const modifierSum = result.modifiers.reduce((sum, mod) => sum + mod, 0);
+            result.minTotal += modifierSum;
+            result.maxTotal += modifierSum;
+
+            return result;
         }
 
-        function parseAndRoll(formula) {
+        function parseFormulaData(formula) {
             try {
                 let processedFormula = formula.toLowerCase().replace(/\s/g, '');
                 if (!/^[+-]/.test(processedFormula)) processedFormula = '+' + processedFormula;
 
+                const result = { dice: [], modifiers: [], minTotal: 0, maxTotal: 0 };
                 const regex = /([+-])(\d*d\d+|\d+)/g;
                 let matches;
-                let total = 0, minTotal = 0, maxTotal = 0;
-                let breakdownParts = [], individualRolls = [];
-                let rollIndex = 0;
                 
                 while ((matches = regex.exec(processedFormula)) !== null) {
                     const sign = matches[1];
                     const term = matches[2];
-                    let termValue = 0;
+                    const signMultiplier = (sign === '+') ? 1 : -1;
 
                     if (term.includes('d')) {
                         let [numDice, numSides] = term.split('d');
                         numDice = numDice === '' ? 1 : parseInt(numDice);
                         numSides = parseInt(numSides);
                         if (isNaN(numDice) || isNaN(numSides) || numDice < 1 || numSides < 1 || numDice > 100 || numSides > 1000) continue;
-
-                        let rolls = [];
-                        for (let i = 0; i < numDice; i++) {
-                            const roll = Math.floor(Math.random() * numSides) + 1;
-                            rolls.push(roll);
-                            termValue += roll;
+                        
+                        for(let i = 0; i < numDice; i++) {
+                            result.dice.push({ sides: numSides, count: 1, result: 0 });
+                            result.minTotal += 1 * signMultiplier;
+                            result.maxTotal += numSides * signMultiplier;
                         }
-                        
-                        const signMultiplier = (sign === '+') ? 1 : -1;
-                        total += termValue * signMultiplier;
-                        minTotal += numDice * 1 * signMultiplier;
-                        maxTotal += numDice * numSides * signMultiplier;
-                        individualRolls.push(...rolls);
-                        
-                        const highlightedRolls = rolls.map(r => `<span class="animated-roll" data-roll-index="${rollIndex++}">${r}</span>`).join(',');
-                        breakdownParts.push(`${sign} ${numDice}d${numSides}(${highlightedRolls})`);
                     } else {
                         const val = parseInt(term);
-                        total += (sign === '+') ? val : -val;
-                        minTotal += (sign === '+') ? val : -val;
-                        maxTotal += (sign === '+') ? val : -val;
-                        breakdownParts.push(`${sign} ${val}`);
+                        result.modifiers.push(val * signMultiplier);
+                        result.minTotal += val * signMultiplier;
+                        result.maxTotal += val * signMultiplier;
                     }
                 }
                 
-                if (breakdownParts.length === 0) throw new Error("No valid terms found");
-
-                const breakdownHTML = `${breakdownParts.join(' ').replace(/^\+ /, '')} = <span id="breakdown-total">${total}</span>`;
-                return { total, breakdownHTML, individualRolls, minTotal, maxTotal };
+                if (result.dice.length === 0 && result.modifiers.length === 0) throw new Error("No valid terms");
+                return result;
             } catch (error) {
                 return { error: i18n[currentLang].errorMsg };
             }
@@ -524,31 +536,32 @@
             isRolling = true;
             rollBtn.disabled = true;
             
-            const { total, individualRolls, minTotal, maxTotal } = result;
+            const { total, minTotal, maxTotal } = result;
             const animationDuration = 1200;
             const stepTime = 50;
             const steps = animationDuration / stepTime;
             let currentStep = 0;
 
-            const animatedRollSpans = document.querySelectorAll('.animated-roll');
-            const breakdownTotalSpan = document.getElementById('breakdown-total');
+            const animatedSpans = document.querySelectorAll('.roll-highlight');
 
             const animationInterval = setInterval(() => {
-                const randomTotal = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
-                resultDisplay.textContent = randomTotal;
-                if (breakdownTotalSpan) breakdownTotalSpan.textContent = randomTotal;
-
-                animatedRollSpans.forEach(span => {
-                    span.textContent = Math.floor(Math.random() * 99) + 1;
+                resultDisplay.textContent = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
+                
+                animatedSpans.forEach(span => {
+                    const sides = parseInt(span.dataset.sides);
+                    if (sides) { // It's a die roll
+                        span.textContent = Math.floor(Math.random() * sides) + 1;
+                    } else { // It's the total
+                        span.textContent = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
+                    }
                 });
 
                 currentStep++;
                 if (currentStep >= steps) {
                     clearInterval(animationInterval);
                     resultDisplay.textContent = total;
-                    if (breakdownTotalSpan) breakdownTotalSpan.textContent = total;
-                    animatedRollSpans.forEach((span, index) => {
-                        span.textContent = individualRolls[index];
+                    animatedSpans.forEach(span => {
+                        span.textContent = span.dataset.finalRoll;
                     });
                     isRolling = false;
                     rollBtn.disabled = false;
@@ -560,7 +573,8 @@
             if (isRolling) return;
 
             const formula = formulaInput.value.trim();
-            const result = formula ? parseAndRoll(formula) : rollFromPool();
+            const rollFn = formula ? () => parseFormulaData(formula) : getPoolData;
+            const result = createRollResult(rollFn);
 
             if (result.error) {
                 breakdownDisplay.innerHTML = result.error;
@@ -644,7 +658,7 @@
             shakeToRollCheckbox.addEventListener('change', e => { shakeEnabled = e.target.checked; });
             if (window.DeviceMotionEvent) {
                 window.addEventListener('devicemotion', handleDeviceMotion);
-                shakeToRollCheckbox.checked = true; // Enable by default
+                shakeToRollCheckbox.checked = true;
                 shakeEnabled = true;
             } else {
                 shakeToRollCheckbox.parentElement.style.display = 'none';
