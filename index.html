@@ -195,20 +195,43 @@
             font-weight: 700;
         }
         
-        .quick-buttons-grid {
+        .buttons-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
             gap: 10px;
         }
-        .quick-buttons-grid button {
+        .buttons-grid button {
             font-weight: 700;
+        }
+
+        #dicePoolDisplay {
+            background-color: #2b2b2b;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 40px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+        .pool-item {
+            background-color: var(--accent-color);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .pool-item.modifier {
+            background-color: #434c5e;
         }
 
         #historyList {
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
@@ -316,26 +339,33 @@
     
     <div class="sidebar">
         <div class="sidebar-content">
-            <div class="formula-section">
-                <h2 id="formula-header"></h2>
-                <div class="control-group">
-                    <input type="text" id="formulaInput" placeholder="2d6 + 5">
-                    <div class="quick-buttons-grid">
-                        <button class="quick-btn" data-value="d4">d4</button>
-                        <button class="quick-btn" data-value="d6">d6</button>
-                        <button class="quick-btn" data-value="d8">d8</button>
-                        <button class="quick-btn" data-value="d10">d10</button>
-                        <button class="quick-btn" data-value="d12">d12</button>
-                        <button class="quick-btn" data-value="d20">d20</button>
-                        <button class="quick-btn" data-value="d100">d100</button>
-                        <button class="quick-btn" data-value=" + ">+</button>
-                        <button class="quick-btn" data-value=" - ">-</button>
-                    </div>
+            <!-- Simple Mode -->
+            <div class="dice-selection-section">
+                <h2 id="select-dice-header"></h2>
+                <div id="dicePoolDisplay"></div>
+                <button id="clearPoolBtn" style="width: 100%; margin-bottom: 10px;"></button>
+                <div class="buttons-grid">
+                    <button class="dice-btn" data-sides="4">d4</button>
+                    <button class="dice-btn" data-sides="6">d6</button>
+                    <button class="dice-btn" data-sides="8">d8</button>
+                    <button class="dice-btn" data-sides="10">d10</button>
+                    <button class="dice-btn" data-sides="12">d12</button>
+                    <button class="dice-btn" data-sides="20">d20</button>
+                    <button class="dice-btn" data-sides="100">d100</button>
+                    <button class="mod-btn" data-value="1">+1</button>
+                    <button class="mod-btn" data-value="-1">-1</button>
                 </div>
             </div>
+            <!-- Advanced Mode -->
+            <div class="formula-section">
+                <h2 id="formula-header"></h2>
+                <input type="text" id="formulaInput" placeholder="2d6 + 5">
+            </div>
+            <!-- History and Settings -->
             <div class="history-section">
                 <h2 id="history-header"></h2>
                 <ul id="historyList"></ul>
+                <button id="clearHistoryBtn" style="width:100%; margin-top: 10px;"></button>
             </div>
             <div class="settings-section">
                 <h2 id="settings-header"></h2>
@@ -344,7 +374,6 @@
                     <span class="custom-checkbox"></span>
                     <span id="shake-label"></span>
                 </label>
-                <button id="clearHistoryBtn"></button>
             </div>
         </div>
     </div>
@@ -370,23 +399,29 @@
             ru: {
                 backToHub: "← На главную",
                 rollBtn: "БРОСОК!",
-                formulaHeader: "Формула",
+                selectDiceHeader: "Выберите кости",
+                clearPoolBtn: "Очистить",
+                formulaHeader: "Ручная формула",
                 historyHeader: "История",
                 settingsHeader: "Настройки",
                 shakeLabel: "Бросок встряхиванием",
                 clearHistoryBtn: "Очистить историю",
-                initialBreakdown: "Введите формулу и сделайте бросок",
+                initialBreakdown: "Выберите кости или введите формулу",
+                emptyRoll: "Нечего бросать!",
                 errorMsg: "Ошибка в формуле"
             },
             en: {
                 backToHub: "← Back to Hub",
                 rollBtn: "ROLL!",
-                formulaHeader: "Formula",
+                selectDiceHeader: "Select Dice",
+                clearPoolBtn: "Clear",
+                formulaHeader: "Manual Formula",
                 historyHeader: "History",
                 settingsHeader: "Settings",
                 shakeLabel: "Shake to Roll",
                 clearHistoryBtn: "Clear History",
-                initialBreakdown: "Enter a formula and roll the dice",
+                initialBreakdown: "Select dice or enter a formula",
+                emptyRoll: "Nothing to roll!",
                 errorMsg: "Invalid formula"
             }
         };
@@ -399,16 +434,66 @@
         const breakdownDisplay = document.getElementById('breakdown-display');
         const historyList = document.getElementById('historyList');
         const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const dicePoolDisplay = document.getElementById('dicePoolDisplay');
+        const clearPoolBtn = document.getElementById('clearPoolBtn');
         
         let currentLang = localStorage.getItem('preferredLang') || 'ru';
         let history = [];
+        let dicePool = [];
 
-        // --- Dice Rolling Logic ---
+        // --- Dice Pool Logic (Simple Mode) ---
+        function addToPool(item) {
+            dicePool.push(item);
+            renderPool();
+        }
+
+        function renderPool() {
+            dicePoolDisplay.innerHTML = '';
+            dicePool.forEach(item => {
+                const span = document.createElement('span');
+                span.classList.add('pool-item');
+                if (item.type === 'dice') {
+                    span.textContent = `d${item.sides}`;
+                } else {
+                    span.textContent = item.value > 0 ? `+${item.value}` : `${item.value}`;
+                    span.classList.add('modifier');
+                }
+                dicePoolDisplay.appendChild(span);
+            });
+        }
+
+        function clearPool() {
+            dicePool = [];
+            renderPool();
+        }
+
+        function rollFromPool() {
+            if (dicePool.length === 0) {
+                return { total: 'Error', breakdown: i18n[currentLang].emptyRoll };
+            }
+
+            let total = 0;
+            let breakdownParts = [];
+
+            dicePool.forEach(item => {
+                if (item.type === 'dice') {
+                    const roll = Math.floor(Math.random() * item.sides) + 1;
+                    total += roll;
+                    breakdownParts.push(`d${item.sides}(${roll})`);
+                } else {
+                    total += item.value;
+                    const sign = item.value > 0 ? '+' : '-';
+                    breakdownParts.push(`${sign} ${Math.abs(item.value)}`);
+                }
+            });
+            
+            const breakdown = breakdownParts.join(' ').replace(/^ \+ /g, '');
+            return { total, breakdown: `${breakdown} = ${total}` };
+        }
+
+        // --- Formula Parsing Logic (Advanced Mode) ---
         function parseAndRoll(formula) {
             try {
-                if (!formula.trim()) return { total: 0, breakdown: i18n[currentLang].initialBreakdown };
-
-                // Standardize formula: 'd6' -> '1d6', ' 2d6+5 ' -> '+2d6+5'
                 let processedFormula = formula.toLowerCase().replace(/\s/g, '');
                 if (!/^[+-]/.test(processedFormula)) {
                     processedFormula = '+' + processedFormula;
@@ -430,9 +515,7 @@
                         numDice = numDice === '' ? 1 : parseInt(numDice);
                         numSides = parseInt(numSides);
 
-                        if (isNaN(numDice) || isNaN(numSides) || numDice < 1 || numSides < 1 || numDice > 100 || numSides > 1000) {
-                            throw new Error("Invalid dice parameters");
-                        }
+                        if (isNaN(numDice) || isNaN(numSides) || numDice < 1 || numSides < 1 || numDice > 100 || numSides > 1000) continue;
 
                         let rolls = [];
                         for (let i = 0; i < numDice; i++) {
@@ -440,7 +523,7 @@
                             rolls.push(roll);
                             termValue += roll;
                         }
-                        termBreakdown = `${numDice}d${numSides} (${rolls.join(', ')})`;
+                        termBreakdown = `${numDice}d${numSides}(${rolls.join(',')})`;
                     } else {
                         termValue = parseInt(term);
                         termBreakdown = termValue.toString();
@@ -454,10 +537,7 @@
                     breakdownParts.push(`${sign} ${termBreakdown}`);
                 }
                 
-                // Check if the entire string was parsed
-                if (regex.lastIndex !== processedFormula.length) {
-                    throw new Error("Invalid characters in formula");
-                }
+                if (breakdownParts.length === 0) throw new Error("No valid terms found");
 
                 let finalBreakdown = breakdownParts.join(' ').replace(/^\+ /, '');
                 return { total, breakdown: `${finalBreakdown} = ${total}` };
@@ -468,16 +548,28 @@
             }
         }
 
+        // --- Main Handler ---
         function handleRoll() {
-            const formula = formulaInput.value;
-            const result = parseAndRoll(formula);
+            const formula = formulaInput.value.trim();
+            let result;
 
+            if (formula) {
+                // Advanced mode: use formula input
+                result = parseAndRoll(formula);
+            } else {
+                // Simple mode: use dice pool
+                result = rollFromPool();
+                if (result.total !== 'Error') {
+                    clearPool(); // Clear pool after a successful roll
+                }
+            }
+
+            // Display result
             resultDisplay.textContent = result.total;
             breakdownDisplay.textContent = result.breakdown;
             
-            // Animate result
             resultDisplay.classList.remove('visible');
-            void resultDisplay.offsetWidth; // Trigger reflow
+            void resultDisplay.offsetWidth;
             resultDisplay.classList.add('visible');
 
             if (result.total !== 'Error') {
@@ -488,9 +580,7 @@
         // --- History Logic ---
         function addToHistory(result) {
             history.unshift(result);
-            if (history.length > 50) { // Limit history size
-                history.pop();
-            }
+            if (history.length > 50) history.pop();
             renderHistory();
         }
 
@@ -498,10 +588,7 @@
             historyList.innerHTML = '';
             history.forEach(item => {
                 const li = document.createElement('li');
-                li.innerHTML = `
-                    <span class="history-breakdown">${item.breakdown}</span>
-                    <span class="history-result">${item.total}</span>
-                `;
+                li.innerHTML = `<span class="history-breakdown">${item.breakdown}</span><span class="history-result">${item.total}</span>`;
                 historyList.appendChild(li);
             });
         }
@@ -514,13 +601,12 @@
         // --- Shake to Roll Logic ---
         let shakeEnabled = false;
         let lastShakeTime = 0;
-        const shakeThreshold = 15; // Acceleration threshold
+        const shakeThreshold = 15;
 
         function handleDeviceMotion(event) {
             if (!shakeEnabled) return;
-
             const now = Date.now();
-            if (now - lastShakeTime < 1000) return; // 1-second cooldown
+            if (now - lastShakeTime < 1000) return;
 
             const acc = event.accelerationIncludingGravity;
             const magnitude = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
@@ -539,6 +625,8 @@
             
             document.getElementById('back-to-hub').textContent = t.backToHub;
             document.getElementById('rollBtn').textContent = t.rollBtn;
+            document.getElementById('select-dice-header').textContent = t.selectDiceHeader;
+            document.getElementById('clearPoolBtn').textContent = t.clearPoolBtn;
             document.getElementById('formula-header').textContent = t.formulaHeader;
             document.getElementById('history-header').textContent = t.historyHeader;
             document.getElementById('settings-header').textContent = t.settingsHeader;
@@ -554,23 +642,18 @@
             // Event Listeners
             menuToggle.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
             rollBtn.addEventListener('click', handleRoll);
-            formulaInput.addEventListener('keydown', e => {
-                if (e.key === 'Enter') handleRoll();
-            });
-
-            document.querySelectorAll('.quick-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    formulaInput.value += btn.dataset.value;
-                    formulaInput.focus();
-                });
-            });
-
+            formulaInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleRoll(); });
+            clearPoolBtn.addEventListener('click', clearPool);
             clearHistoryBtn.addEventListener('click', clearHistory);
 
-            document.getElementById('shakeToRoll').addEventListener('change', e => {
-                shakeEnabled = e.target.checked;
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.addEventListener('click', () => addToPool({ type: 'dice', sides: parseInt(btn.dataset.sides) }));
+            });
+            document.querySelectorAll('.mod-btn').forEach(btn => {
+                btn.addEventListener('click', () => addToPool({ type: 'modifier', value: parseInt(btn.dataset.value) }));
             });
 
+            document.getElementById('shakeToRoll').addEventListener('change', e => { shakeEnabled = e.target.checked; });
             if (window.DeviceMotionEvent) {
                 window.addEventListener('devicemotion', handleDeviceMotion);
             } else {
@@ -597,9 +680,9 @@
             });
 
             // Initial Setup
-            formulaInput.value = 'd20';
             updateLanguage();
             renderHistory();
+            renderPool();
         }
 
         init();
