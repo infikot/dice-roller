@@ -3,25 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dice Roller Pro</title>
+    <title>Dice Roller</title>
     <link rel="icon" href="https://github.githubassets.com/favicons/favicon-dark.svg" type="image/svg+xml">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         
         :root {
-            --bg-color: #1a1a1a;
-            --surface-color: #242424;
-            --primary-text-color: #f0f0f0;
-            --secondary-text-color: #a0a0a0;
-            --input-bg: #2a2a2a;
-            --input-border: #444;
+            --bg-color: #121212;
+            --primary-text-color: #e0e0e0;
+            --secondary-text-color: #b0b0b0;
+            --input-bg: #1e1e1e;
+            --input-border: #333;
+            --button-bg: #007bff;
+            --button-hover-bg: #0056b3;
             --accent-color: #007bff;
-            --accent-hover-color: #0056b3;
-            --danger-color: #e74c3c;
-            --danger-hover-color: #c0392b;
+            --disabled-color: #434c5e;
             --font-family: 'Inter', sans-serif;
-            --bottom-bar-height: 110px;
-            --border-radius: 8px;
         }
 
         *, *::before, *::after {
@@ -30,17 +27,15 @@
 
         body {
             background-color: var(--bg-color);
-            background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
             color: var(--primary-text-color);
             font-family: var(--font-family);
             margin: 0;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
             overflow: hidden;
         }
 
-        /* --- HEADER & SIDEBAR (Unaltered positions, new style) --- */
         .page-header {
             position: fixed;
             top: 0;
@@ -53,6 +48,7 @@
             height: 60px;
             z-index: 102;
         }
+
         .header-left {
             display: flex;
             align-items: center;
@@ -61,22 +57,18 @@
         #menu-toggle {
             background: none;
             border: none;
-            color: var(--secondary-text-color);
+            color: var(--primary-text-color);
             font-size: 2rem;
             cursor: pointer;
             padding: 10px;
             z-index: 103;
-            transition: color 0.2s;
-        }
-        #menu-toggle:hover {
-            color: var(--primary-text-color);
         }
         #back-to-hub {
             color: var(--secondary-text-color);
             text-decoration: none;
             font-weight: 700;
             padding: 8px 12px;
-            border-radius: var(--border-radius);
+            border-radius: 8px;
             background-color: rgba(255, 255, 255, 0.05);
             transition: all 0.2s;
         }
@@ -84,13 +76,14 @@
             background-color: rgba(255, 255, 255, 0.1);
             color: var(--primary-text-color);
         }
+
         .sidebar {
             position: fixed;
             top: 0;
             left: 0;
             width: 350px;
             height: 100vh;
-            background-color: var(--surface-color);
+            background-color: var(--input-bg);
             border-right: 1px solid var(--input-border);
             transform: translateX(-100%);
             transition: transform 0.3s ease-in-out;
@@ -108,8 +101,72 @@
             display: flex;
             flex-direction: column;
             gap: 35px;
-            padding-right: 10px;
+            padding-right: 5px;
         }
+        
+        .main-content {
+            flex-grow: 1;
+            margin-left: 0;
+            transition: margin-left 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px 20px;
+            height: 100vh;
+            text-align: center;
+        }
+        
+        .dice-roller-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        #result-display {
+            font-size: 10rem;
+            font-weight: 900;
+            color: var(--accent-color);
+            line-height: 1;
+            min-height: 150px;
+            transform: scale(0.8);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        #result-display.visible {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        #breakdown-display {
+            font-size: 1.2rem;
+            color: var(--secondary-text-color);
+            min-height: 2rem;
+            word-break: break-all;
+        }
+
+        .roll-button {
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            width: 80%;
+            max-width: 400px;
+            background-color: var(--button-bg);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .roll-button:hover {
+            background-color: var(--button-hover-bg);
+        }
+        
         h2 {
             font-weight: 700;
             border-bottom: 2px solid var(--input-border);
@@ -117,379 +174,139 @@
             margin-top: 0;
             font-size: 1.2rem;
         }
-        .dice-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+        .control-group {
+            display: flex;
+            flex-direction: column;
             gap: 10px;
         }
-        button {
-            background-color: var(--accent-color);
-            color: #fff;
-            border: none;
+        input, select, button {
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--primary-text-color);
             font-size: 1rem;
-            padding: 12px;
-            border-radius: var(--border-radius);
-            font-weight: 700;
+            padding: 10px;
+            border-radius: 5px;
             font-family: inherit;
-            cursor: pointer;
-            transition: background-color 0.2s;
         }
-        button:hover {
-            background-color: var(--accent-hover-color);
+        input[type="text"] {
+            background: #2b2b2b;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
         }
-        .history-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        
+        .quick-buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
         }
-        #clearHistoryBtn {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            background-color: var(--danger-color);
+        .quick-buttons-grid button {
+            font-weight: 700;
         }
-        #clearHistoryBtn:hover {
-            background-color: var(--danger-hover-color);
-        }
-        .history-log {
+
+        #historyList {
             list-style: none;
             padding: 0;
             margin: 0;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
         }
-        .history-log li {
-            padding: 8px;
-            border-bottom: 1px solid var(--input-border);
+        #historyList li {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            background-color: #2b2b2b;
+            font-size: 0.9rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 10px;
         }
-        .history-log li .remove-history-btn {
-            background: none;
-            border: none;
-            color: var(--secondary-text-color);
-            cursor: pointer;
+        #historyList .history-result {
+            font-weight: 900;
             font-size: 1.2rem;
-            padding: 0 5px;
+            color: var(--accent-color);
+        }
+        #historyList .history-breakdown {
+            flex-grow: 1;
+            text-align: left;
+            color: var(--secondary-text-color);
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .settings-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .custom-checkbox {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: #2b2b2b;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            position: relative;
+            transition: background-color 0.2s;
             flex-shrink: 0;
         }
-        .history-log li .remove-history-btn:hover {
-            color: var(--danger-color);
-        }
-        .top-nav {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        #shake-status {
-            font-size: 0.8rem;
-            color: var(--secondary-text-color);
-        }
-        .lang-switcher a {
-            color: var(--secondary-text-color);
-            text-decoration: none;
-            margin: 0 5px;
-            font-weight: 700;
-            padding: 5px;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-        .lang-switcher a.active {
-            color: var(--primary-text-color);
-            border-bottom-color: var(--accent-color);
-        }
-
-        /* --- MAIN CONTENT & DICE TRAY --- */
-        .main-content {
-            flex-grow: 1;
-            padding-top: 60px;
-            padding-bottom: var(--bottom-bar-height);
-            height: 100vh;
-        }
-        #dice-tray {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            perspective: 1800px;
-            overflow: hidden;
-        }
-
-        /* --- BOTTOM BAR (RESULTS + FOOTER) --- */
-        .bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: var(--bottom-bar-height);
-            background-color: rgba(30, 30, 30, 0.7);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid var(--input-border);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 20px;
-        }
-        #result-display {
-            text-align: center;
-        }
-        #total-result {
-            font-size: 3.5rem;
-            font-weight: 900;
-            color: var(--accent-color);
-            line-height: 1;
-        }
-        #result-breakdown {
-            font-size: 1rem;
-            color: var(--secondary-text-color);
-            word-break: break-all;
-            margin-top: 8px;
-        }
-        .footer {
+        .custom-checkbox::after {
+            content: '✔';
+            color: #fff;
             position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-        #author-signature {
-            color: var(--secondary-text-color);
-            cursor: pointer;
-            font-size: 0.9rem;
-            padding: 5px 10px;
-            transition: color 0.2s;
-        }
-        #author-signature:hover {
-            color: var(--primary-text-color);
-        }
-
-        /* --- MAIN ROLL BUTTON --- */
-        #mainRollBtn {
-            position: fixed;
-            bottom: calc(var(--bottom-bar-height) - 40px);
-            right: 30px;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            z-index: 101;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #mainRollBtn svg {
-            width: 40px;
-            height: 40px;
-            fill: white;
-            transition: transform 0.2s ease-in-out;
-        }
-        #mainRollBtn:hover svg {
-            transform: scale(1.1) rotate(-15deg);
-        }
-
-        /* --- GENERAL DICE STYLES --- */
-        .dice-scene {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            cursor: grab;
-            user-select: none;
-            transform-style: preserve-3d;
-        }
-        .dice-scene.dragging {
-            cursor: grabbing;
-            z-index: 1000;
-        }
-        .dice {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            transform-style: preserve-3d;
-            transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        .dice-face {
-            position: absolute;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: var(--input-bg);
-            border: 1px solid var(--accent-color);
-            color: var(--primary-text-color);
-            font-weight: 900;
-            backface-visibility: hidden;
-        }
-        .remove-die-btn {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 28px;
-            height: 28px;
-            background-color: var(--danger-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-weight: bold;
-            font-size: 1.2rem;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-            opacity: 0;
-            transform: scale(0.8);
-            transition: opacity 0.2s, transform 0.2s;
-        }
-        .dice-scene:hover .remove-die-btn {
-            opacity: 1;
-            transform: scale(1);
-        }
-        .remove-die-btn:hover {
-            background-color: var(--danger-hover-color);
-        }
-
-        /* --- LOCKED STATE --- */
-        .dice-scene.locked .dice {
-            filter: grayscale(1) brightness(0.6);
-        }
-        .dice-scene.locked {
-            cursor: pointer;
-        }
-        .dice-scene.locked::before, .dice-scene.locked::after {
-            content: '';
-            position: absolute;
-            width: 8px;
-            height: 40px;
-            background-color: var(--primary-text-color);
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            border-radius: 2px;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.2s;
         }
-        .dice-scene.locked::before { transform: translate(-150%, -50%); }
-        .dice-scene.locked::after { transform: translate(50%, -50%); }
-
-        /* --- CORRECT 3D GEOMETRY --- */
-        /* D6 (Cube) */
-        .die-d6 .dice-face { width: 100px; height: 100px; font-size: 2.5rem; }
-        .die-d6 .face-1 { transform: rotateY(0deg) translateZ(50px); }
-        .die-d6 .face-2 { transform: rotateY(90deg) translateZ(50px); }
-        .die-d6 .face-3 { transform: rotateY(180deg) translateZ(50px); }
-        .die-d6 .face-4 { transform: rotateY(-90deg) translateZ(50px); }
-        .die-d6 .face-5 { transform: rotateX(90deg) translateZ(50px); }
-        .die-d6 .face-6 { transform: rotateX(-90deg) translateZ(50px); }
-
-        /* D4 (Tetrahedron) */
-        .die-d4 { font-size: 1.5rem; }
-        .die-d4 .dice-face {
-            width: 116px; height: 100px;
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-            margin: 0 0 0 -8px;
+        input[type="checkbox"] {
+            display: none;
         }
-        .die-d4 .face-1 { transform: rotateY(0deg) rotateX(19.47deg) translateZ(28.87px); }
-        .die-d4 .face-2 { transform: rotateY(120deg) rotateX(19.47deg) translateZ(28.87px); }
-        .die-d4 .face-3 { transform: rotateY(240deg) rotateX(19.47deg) translateZ(28.87px); }
-        .die-d4 .face-4 { transform: rotateX(-180deg) translateZ(14.43px) translateY(-42px) rotateX(19.47deg); }
-
-        /* D8 (Octahedron) */
-        .die-d8 { font-size: 1.5rem; }
-        .die-d8 .dice-face {
-            width: 70.71px; height: 122.47px;
-            clip-path: polygon(50% 0%, 0% 50%, 50% 100%, 100% 50%);
-            margin: -11.235px 0 0 14.645px;
+        input[type="checkbox"]:checked + .custom-checkbox {
+            background-color: var(--accent-color);
         }
-        .die-d8 .face-1 { transform: rotateY(0deg) rotateZ(45deg) rotateX(54.73deg) translateZ(50px); }
-        .die-d8 .face-2 { transform: rotateY(90deg) rotateZ(45deg) rotateX(54.73deg) translateZ(50px); }
-        .die-d8 .face-3 { transform: rotateY(180deg) rotateZ(45deg) rotateX(54.73deg) translateZ(50px); }
-        .die-d8 .face-4 { transform: rotateY(270deg) rotateZ(45deg) rotateX(54.73deg) translateZ(50px); }
-        .die-d8 .face-5 { transform: rotateY(0deg) rotateZ(45deg) rotateX(-54.73deg) translateZ(50px); }
-        .die-d8 .face-6 { transform: rotateY(90deg) rotateZ(45deg) rotateX(-54.73deg) translateZ(50px); }
-        .die-d8 .face-7 { transform: rotateY(180deg) rotateZ(45deg) rotateX(-54.73deg) translateZ(50px); }
-        .die-d8 .face-8 { transform: rotateY(270deg) rotateZ(45deg) rotateX(-54.73deg) translateZ(50px); }
-
-        /* D12 (Dodecahedron) */
-        .die-d12 { font-size: 1.2rem; }
-        .die-d12 .dice-face {
-            width: 61.8px; height: 58.78px;
-            clip-path: polygon(50% 0%, 100% 38.2%, 80.9% 100%, 19.1% 100%, 0% 38.2%);
-            margin: 20.61px 0 0 19.1px;
+        input[type="checkbox"]:checked + .custom-checkbox::after {
+            transform: translate(-50%, -50%) scale(1);
         }
-        .die-d12 .face-1 { transform: rotateY(0deg) translateZ(80.9px); }
-        .die-d12 .face-2 { transform: rotateY(72deg) rotateX(63.43deg) translateZ(80.9px); }
-        .die-d12 .face-3 { transform: rotateY(144deg) rotateX(63.43deg) translateZ(80.9px); }
-        .die-d12 .face-4 { transform: rotateY(216deg) rotateX(63.43deg) translateZ(80.9px); }
-        .die-d12 .face-5 { transform: rotateY(288deg) rotateX(63.43deg) translateZ(80.9px); }
-        .die-d12 .face-6 { transform: rotateY(36deg) rotateX(-63.43deg) translateZ(80.9px); }
-        .die-d12 .face-7 { transform: rotateY(108deg) rotateX(-63.43deg) translateZ(80.9px); }
-        .die-d12 .face-8 { transform: rotateY(180deg) rotateX(-63.43deg) translateZ(80.9px); }
-        .die-d12 .face-9 { transform: rotateY(252deg) rotateX(-63.43deg) translateZ(80.9px); }
-        .die-d12 .face-10 { transform: rotateY(324deg) rotateX(-63.43deg) translateZ(80.9px); }
-        .die-d12 .face-11 { transform: rotateY(180deg) translateZ(80.9px); }
-        .die-d12 .face-12 { transform: rotateX(180deg) translateZ(80.9px); }
-
-        /* D20 (Icosahedron) */
-        .die-d20 { font-size: 1.2rem; }
-        .die-d20 .dice-face {
-            width: 86.6px; height: 75px;
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-            margin: 12.5px 0 0 6.7px;
-        }
-        .die-d20 .face-1 { transform: rotateY(0deg) rotateX(31.7deg) translateZ(75.58px); }
-        .die-d20 .face-2 { transform: rotateY(72deg) rotateX(31.7deg) translateZ(75.58px); }
-        .die-d20 .face-3 { transform: rotateY(144deg) rotateX(31.7deg) translateZ(75.58px); }
-        .die-d20 .face-4 { transform: rotateY(216deg) rotateX(31.7deg) translateZ(75.58px); }
-        .die-d20 .face-5 { transform: rotateY(288deg) rotateX(31.7deg) translateZ(75.58px); }
-        .die-d20 .face-6 { transform: rotateY(36deg) rotateX(90deg) translateZ(75.58px); }
-        .die-d20 .face-7 { transform: rotateY(108deg) rotateX(90deg) translateZ(75.58px); }
-        .die-d20 .face-8 { transform: rotateY(180deg) rotateX(90deg) translateZ(75.58px); }
-        .die-d20 .face-9 { transform: rotateY(252deg) rotateX(90deg) translateZ(75.58px); }
-        .die-d20 .face-10 { transform: rotateY(324deg) rotateX(90deg) translateZ(75.58px); }
-        .die-d20 .face-11 { transform: rotateY(0deg) rotateX(-31.7deg) translateZ(75.58px); }
-        .die-d20 .face-12 { transform: rotateY(72deg) rotateX(-31.7deg) translateZ(75.58px); }
-        .die-d20 .face-13 { transform: rotateY(144deg) rotateX(-31.7deg) translateZ(75.58px); }
-        .die-d20 .face-14 { transform: rotateY(216deg) rotateX(-31.7deg) translateZ(75.58px); }
-        .die-d20 .face-15 { transform: rotateY(288deg) rotateX(-31.7deg) translateZ(75.58px); }
-        .die-d20 .face-16 { transform: rotateY(36deg) rotateX(-90deg) translateZ(75.58px); }
-        .die-d20 .face-17 { transform: rotateY(108deg) rotateX(-90deg) translateZ(75.58px); }
-        .die-d20 .face-18 { transform: rotateY(180deg) rotateX(-90deg) translateZ(75.58px); }
-        .die-d20 .face-19 { transform: rotateY(252deg) rotateX(-90deg) translateZ(75.58px); }
-        .die-d20 .face-20 { transform: rotateY(324deg) rotateX(-90deg) translateZ(75.58px); }
-
-        /* D10/D100 (Pentagonal Prism) */
-        .die-d10, .die-d100 { font-size: 1.5rem; }
-        .die-d10 .dice-face, .die-d100 .dice-face {
-            width: 80px; height: 80px;
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-            margin: 10px 0 0 10px;
-        }
-        .die-d10 .face-1, .die-d100 .face-1 { transform: rotateY(0deg) translateZ(40px); }
-        .die-d10 .face-2, .die-d100 .face-2 { transform: rotateY(36deg) translateZ(40px); }
-        .die-d10 .face-3, .die-d100 .face-3 { transform: rotateY(72deg) translateZ(40px); }
-        .die-d10 .face-4, .die-d100 .face-4 { transform: rotateY(108deg) translateZ(40px); }
-        .die-d10 .face-5, .die-d100 .face-5 { transform: rotateY(144deg) translateZ(40px); }
-        .die-d10 .face-6, .die-d100 .face-6 { transform: rotateY(180deg) translateZ(40px); }
-        .die-d10 .face-7, .die-d100 .face-7 { transform: rotateY(216deg) translateZ(40px); }
-        .die-d10 .face-8, .die-d100 .face-8 { transform: rotateY(252deg) translateZ(40px); }
-        .die-d10 .face-9, .die-d100 .face-9 { transform: rotateY(288deg) translateZ(40px); }
-        .die-d10 .face-10, .die-d100 .face-10 { transform: rotateY(324deg) translateZ(40px); }
-        .die-d100 .dice-face { font-size: 1.2rem; }
-
+        
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--surface-color); }
+        ::-webkit-scrollbar-track { background: var(--input-bg); }
         ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #777; }
+        
+        .top-nav { display: flex; align-items: center; gap: 20px; }
+        .lang-switcher a { color: var(--secondary-text-color); text-decoration: none; margin: 0 5px; font-weight: 700; padding: 5px; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .lang-switcher a.active { color: var(--primary-text-color); border-bottom-color: var(--accent-color); }
+        
+        .footer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        #author-signature { color: var(--secondary-text-color); cursor: pointer; font-size: 0.9rem; padding: 5px 10px; transition: color 0.2s; }
+        #author-signature:hover { color: var(--primary-text-color); }
+        #links-popup { position: absolute; bottom: 120%; left: 50%; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 10px; opacity: 0; visibility: hidden; transform: translate(-50%, 10px); transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0.3s; }
+        #links-popup.visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0s; }
+        #links-popup a { color: var(--primary-text-color); text-decoration: none; padding: 8px 15px; display: block; border-radius: 5px; transition: background-color 0.2s; white-space: nowrap; }
+        #links-popup a:hover { background-color: rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body>
 
-    <!-- Unaltered HTML structure for layout -->
     <div class="page-header">
         <div class="header-left">
             <button id="menu-toggle">☰</button>
             <a href="https://infikot.github.io/" id="back-to-hub"></a>
         </div>
         <div class="top-nav">
-            <span id="shake-status"></span>
             <div class="lang-switcher">
                 <a href="#" class="lang-btn" data-lang="ru">RU</a>
                 <a href="#" class="lang-btn" data-lang="en">EN</a>
@@ -499,324 +316,267 @@
     
     <div class="sidebar">
         <div class="sidebar-content">
-            <div class="dice-pool-section">
-                <h2 id="dice-pool-header"></h2>
-                <div class="dice-selector">
-                    <button data-sides="4">d4</button>
-                    <button data-sides="6">d6</button>
-                    <button data-sides="8">d8</button>
-                    <button data-sides="10">d10</button>
-                    <button data-sides="12">d12</button>
-                    <button data-sides="20">d20</button>
-                    <button data-sides="100">d100</button>
+            <div class="formula-section">
+                <h2 id="formula-header"></h2>
+                <div class="control-group">
+                    <input type="text" id="formulaInput" placeholder="2d6 + 5">
+                    <div class="quick-buttons-grid">
+                        <button class="quick-btn" data-value="d4">d4</button>
+                        <button class="quick-btn" data-value="d6">d6</button>
+                        <button class="quick-btn" data-value="d8">d8</button>
+                        <button class="quick-btn" data-value="d10">d10</button>
+                        <button class="quick-btn" data-value="d12">d12</button>
+                        <button class="quick-btn" data-value="d20">d20</button>
+                        <button class="quick-btn" data-value="d100">d100</button>
+                        <button class="quick-btn" data-value=" + ">+</button>
+                        <button class="quick-btn" data-value=" - ">-</button>
+                    </div>
                 </div>
-                <br>
-                <button id="clearPoolBtn"></button>
             </div>
             <div class="history-section">
-                <div class="history-controls">
-                    <h2 id="history-header"></h2>
-                    <button id="clearHistoryBtn"></button>
-                </div>
-                <ul id="historyLog"></ul>
+                <h2 id="history-header"></h2>
+                <ul id="historyList"></ul>
+            </div>
+            <div class="settings-section">
+                <h2 id="settings-header"></h2>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="shakeToRoll" />
+                    <span class="custom-checkbox"></span>
+                    <span id="shake-label"></span>
+                </label>
+                <button id="clearHistoryBtn"></button>
             </div>
         </div>
     </div>
     
     <div class="main-content">
-        <div id="dice-tray"></div>
-    </div>
-
-    <div class="bottom-bar">
-        <div id="result-display">
-            <div id="total-result">0</div>
-            <div id="result-breakdown"></div>
-        </div>
-        <div class="footer">
-            <span id="author-signature">by infikot</span>
+        <div class="dice-roller-container">
+            <div id="result-display">0</div>
+            <div id="breakdown-display"></div>
+            <button class="roll-button" id="rollBtn"></button>
         </div>
     </div>
 
-    <button id="mainRollBtn" title="Roll Dice">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-            <path d="M128 64h256v256h64V48c0-26.5-21.5-48-48-48H112C85.5 0 64 21.5 64 48v71.1l64-64.5V64zm336 272H112c-26.5 0-48 21.5-48 48v128c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V384c0-26.5-21.5-48-48-48zM224 416c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm160 0c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z"/>
-        </svg>
-    </button>
+    <div class="footer">
+        <span id="author-signature">by infikot</span>
+        <div id="links-popup">
+             <a href="https://github.com/infikot" target="_blank">GitHub</a>
+             <a href="https://t.me/infinite_edit" target="_blank">Telegram</a>
+        </div>
+    </div>
 
     <script>
-        // --- DICTIONARY & GLOBAL VARS ---
         const i18n = {
-            ru: { backToHub: "← На главную", dicePoolHeader: "Добавить кубик", clearPoolBtn: "Очистить всё", historyHeader: "История", clearHistoryBtn: "Очистить", shakeStatusDefault: "Встряхните для броска", shakeStatusDenied: "Встряхивание: отказано", shakeStatusGranted: "Встряхивание: активно", shakeStatusNA: "Встряхивание: н/д", removeEntry: "Удалить запись" },
-            en: { backToHub: "← Back to Hub", dicePoolHeader: "Add Dice", clearPoolBtn: "Clear All", historyHeader: "History", clearHistoryBtn: "Clear", shakeStatusDefault: "Shake to roll", shakeStatusDenied: "Shake: Denied", shakeStatusGranted: "Shake: Active", shakeStatusNA: "Shake: N/A", removeEntry: "Remove entry" }
-        };
-        
-        // These transforms are the INVERSE of the CSS transforms, to bring a face to the front.
-        const diceFaceTransforms = {
-            4: { 1: 'rotateX(-19.47deg) rotateY(0deg)', 2: 'rotateX(-19.47deg) rotateY(-120deg)', 3: 'rotateX(-19.47deg) rotateY(-240deg)', 4: 'rotateX(-109.47deg) rotateY(0deg)' },
-            6: { 1: 'rotateY(0deg)', 2: 'rotateY(90deg)', 3: 'rotateY(180deg)', 4: 'rotateY(-90deg)', 5: 'rotateX(-90deg)', 6: 'rotateX(90deg)' },
-            8: { 1: 'rotateX(-54.73deg) rotateZ(-45deg) rotateY(0deg)', 2: 'rotateX(-54.73deg) rotateZ(-45deg) rotateY(-90deg)', 3: 'rotateX(-54.73deg) rotateZ(-45deg) rotateY(-180deg)', 4: 'rotateX(-54.73deg) rotateZ(-45deg) rotateY(-270deg)', 5: 'rotateX(54.73deg) rotateZ(-45deg) rotateY(0deg)', 6: 'rotateX(54.73deg) rotateZ(-45deg) rotateY(-90deg)', 7: 'rotateX(54.73deg) rotateZ(-45deg) rotateY(-180deg)', 8: 'rotateX(54.73deg) rotateZ(-45deg) rotateY(-270deg)' },
-            10: { 1: 'rotateY(0deg)', 2: 'rotateY(-36deg)', 3: 'rotateY(-72deg)', 4: 'rotateY(-108deg)', 5: 'rotateY(-144deg)', 6: 'rotateY(-180deg)', 7: 'rotateY(-216deg)', 8: 'rotateY(-252deg)', 9: 'rotateY(-288deg)', 10: 'rotateY(-324deg)' },
-            12: { 1: 'rotateY(0deg)', 2: 'rotateX(-63.43deg) rotateY(-72deg)', 3: 'rotateX(-63.43deg) rotateY(-144deg)', 4: 'rotateX(-63.43deg) rotateY(-216deg)', 5: 'rotateX(-63.43deg) rotateY(-288deg)', 6: 'rotateX(63.43deg) rotateY(-36deg)', 7: 'rotateX(63.43deg) rotateY(-108deg)', 8: 'rotateX(63.43deg) rotateY(-180deg)', 9: 'rotateX(63.43deg) rotateY(-252deg)', 10: 'rotateX(63.43deg) rotateY(-324deg)', 11: 'rotateY(180deg)', 12: 'rotateX(180deg)' },
-            20: { 1: 'rotateX(-31.7deg) rotateY(0deg)', 2: 'rotateX(-31.7deg) rotateY(-72deg)', 3: 'rotateX(-31.7deg) rotateY(-144deg)', 4: 'rotateX(-31.7deg) rotateY(-216deg)', 5: 'rotateX(-31.7deg) rotateY(-288deg)', 6: 'rotateX(-90deg) rotateY(-36deg)', 7: 'rotateX(-90deg) rotateY(-108deg)', 8: 'rotateX(-90deg) rotateY(-180deg)', 9: 'rotateX(-90deg) rotateY(-252deg)', 10: 'rotateX(-90deg) rotateY(-324deg)', 11: 'rotateX(31.7deg) rotateY(0deg)', 12: 'rotateX(31.7deg) rotateY(-72deg)', 13: 'rotateX(31.7deg) rotateY(-144deg)', 14: 'rotateX(31.7deg) rotateY(-216deg)', 15: 'rotateX(31.7deg) rotateY(-288deg)', 16: 'rotateX(90deg) rotateY(-36deg)', 17: 'rotateX(90deg) rotateY(-108deg)', 18: 'rotateX(90deg) rotateY(-180deg)', 19: 'rotateX(90deg) rotateY(-252deg)', 20: 'rotateX(90deg) rotateY(-324deg)' }
-        };
-        diceFaceTransforms[100] = diceFaceTransforms[10];
-
-        const diceTray = document.getElementById('dice-tray');
-        let dicePool = [];
-        let history = JSON.parse(localStorage.getItem('diceHistory')) || [];
-        let currentLang = localStorage.getItem('preferredLang') || 'ru';
-        let draggedElement = null, offsetX, offsetY, isDragging = false;
-
-        // --- CORE FUNCTIONS ---
-        function roll(sides) {
-            if (sides === 100) {
-                return Math.floor(Math.random() * 10) * 10;
+            ru: {
+                backToHub: "← На главную",
+                rollBtn: "БРОСОК!",
+                formulaHeader: "Формула",
+                historyHeader: "История",
+                settingsHeader: "Настройки",
+                shakeLabel: "Бросок встряхиванием",
+                clearHistoryBtn: "Очистить историю",
+                initialBreakdown: "Введите формулу и сделайте бросок",
+                errorMsg: "Ошибка в формуле"
+            },
+            en: {
+                backToHub: "← Back to Hub",
+                rollBtn: "ROLL!",
+                formulaHeader: "Formula",
+                historyHeader: "History",
+                settingsHeader: "Settings",
+                shakeLabel: "Shake to Roll",
+                clearHistoryBtn: "Clear History",
+                initialBreakdown: "Enter a formula and roll the dice",
+                errorMsg: "Invalid formula"
             }
-            return Math.floor(Math.random() * sides) + 1;
-        }
+        };
 
-        function renderDice() {
-            diceTray.innerHTML = '';
-            dicePool.forEach((die, index) => {
-                const scene = document.createElement('div');
-                scene.className = `dice-scene die-d${die.sides}`;
-                scene.dataset.index = index;
-                scene.style.left = `${die.x}px`;
-                scene.style.top = `${die.y}px`;
-                if (die.locked) {
-                    scene.classList.add('locked');
+        // --- DOM Elements ---
+        const menuToggle = document.getElementById('menu-toggle');
+        const formulaInput = document.getElementById('formulaInput');
+        const rollBtn = document.getElementById('rollBtn');
+        const resultDisplay = document.getElementById('result-display');
+        const breakdownDisplay = document.getElementById('breakdown-display');
+        const historyList = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        
+        let currentLang = localStorage.getItem('preferredLang') || 'ru';
+        let history = [];
+
+        // --- Dice Rolling Logic ---
+        function parseAndRoll(formula) {
+            try {
+                if (!formula.trim()) return { total: 0, breakdown: i18n[currentLang].initialBreakdown };
+
+                // Standardize formula: 'd6' -> '1d6', ' 2d6+5 ' -> '+2d6+5'
+                let processedFormula = formula.toLowerCase().replace(/\s/g, '');
+                if (!/^[+-]/.test(processedFormula)) {
+                    processedFormula = '+' + processedFormula;
                 }
 
-                const cube = document.createElement('div');
-                cube.className = 'dice';
-                cube.style.transform = die.transform || 'rotateX(0) rotateY(0)';
+                const regex = /([+-])(\d*d\d+|\d+)/g;
+                let matches;
+                let total = 0;
+                let breakdownParts = [];
+                
+                while ((matches = regex.exec(processedFormula)) !== null) {
+                    const sign = matches[1];
+                    const term = matches[2];
+                    let termValue = 0;
+                    let termBreakdown = '';
 
-                let facesToShow = die.sides;
-                if (die.sides > 20 && die.sides !== 100) {
-                    facesToShow = 20;
-                }
+                    if (term.includes('d')) {
+                        let [numDice, numSides] = term.split('d');
+                        numDice = numDice === '' ? 1 : parseInt(numDice);
+                        numSides = parseInt(numSides);
 
-                for (let i = 1; i <= facesToShow; i++) {
-                    const face = document.createElement('div');
-                    face.className = `dice-face face-${i}`;
-                    let faceValue = i;
-                    if (die.sides === 10) {
-                        faceValue = (i === 10) ? 0 : i;
+                        if (isNaN(numDice) || isNaN(numSides) || numDice < 1 || numSides < 1 || numDice > 100 || numSides > 1000) {
+                            throw new Error("Invalid dice parameters");
+                        }
+
+                        let rolls = [];
+                        for (let i = 0; i < numDice; i++) {
+                            const roll = Math.floor(Math.random() * numSides) + 1;
+                            rolls.push(roll);
+                            termValue += roll;
+                        }
+                        termBreakdown = `${numDice}d${numSides} (${rolls.join(', ')})`;
+                    } else {
+                        termValue = parseInt(term);
+                        termBreakdown = termValue.toString();
                     }
-                    if (die.sides === 100) {
-                        faceValue = (i - 1) * 10;
+
+                    if (sign === '+') {
+                        total += termValue;
+                    } else {
+                        total -= termValue;
                     }
-                    face.textContent = faceValue;
-                    cube.appendChild(face);
+                    breakdownParts.push(`${sign} ${termBreakdown}`);
                 }
                 
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-die-btn';
-                removeBtn.innerHTML = '×';
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    removeDie(index);
-                });
-
-                scene.appendChild(cube);
-                scene.appendChild(removeBtn);
-                diceTray.appendChild(scene);
-            });
-            updateEventListeners();
-        }
-
-        function performRoll() {
-            if (dicePool.length === 0) {
-                return;
-            }
-            
-            dicePool.forEach((die, index) => {
-                if (!die.locked) {
-                    die.value = roll(die.sides);
-                    const randomX = (Math.floor(Math.random() * 8) + 4) * 180;
-                    const randomY = (Math.floor(Math.random() * 8) + 4) * 180;
-                    const randomZ = (Math.floor(Math.random() * 8) + 4) * 180;
-                    const sceneElement = document.querySelector(`.dice-scene[data-index='${index}']`);
-                    const cubeElement = sceneElement.querySelector('.dice');
-                    cubeElement.style.transform = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
+                // Check if the entire string was parsed
+                if (regex.lastIndex !== processedFormula.length) {
+                    throw new Error("Invalid characters in formula");
                 }
-            });
 
-            setTimeout(() => {
-                let total = 0;
-                let breakdown = [];
-                dicePool.forEach((die, index) => {
-                    if (!die.locked) {
-                        let resultValue = die.value;
-                        if (die.sides === 10 && resultValue === 0) { resultValue = 10; }
-                        if (die.sides === 100 && resultValue === 0) { resultValue = 10; }
-                        
-                        const finalTransform = diceFaceTransforms[die.sides][resultValue];
-                        die.transform = finalTransform;
-                        const cubeElement = document.querySelector(`.dice-scene[data-index='${index}'] .dice`);
-                        if (cubeElement) {
-                            cubeElement.style.transform = finalTransform;
-                        }
-                    }
-                    let valueForSum = (die.sides === 10 && die.value === 0) ? 10 : die.value;
-                    total += valueForSum;
-                    breakdown.push(valueForSum);
-                });
-                document.getElementById('total-result').textContent = total;
-                document.getElementById('result-breakdown').textContent = breakdown.join(' + ');
-                addToHistory(`${total} = (${breakdown.join(' + ')})`);
-            }, 1000);
-        }
+                let finalBreakdown = breakdownParts.join(' ').replace(/^\+ /, '');
+                return { total, breakdown: `${finalBreakdown} = ${total}` };
 
-        function addDie(sides) {
-            const trayRect = diceTray.getBoundingClientRect();
-            const x = Math.random() * (trayRect.width - 100);
-            const y = Math.random() * (trayRect.height - 100);
-            dicePool.push({ sides, value: null, locked: false, x, y, transform: 'rotateX(0) rotateY(0)' });
-            renderDice();
-        }
-        
-        function removeDie(index) {
-            dicePool.splice(index, 1);
-            renderDice();
-        }
-
-        function clearPool() {
-            dicePool = [];
-            renderDice();
-            document.getElementById('total-result').textContent = '0';
-            document.getElementById('result-breakdown').textContent = '';
-        }
-
-        function toggleLock(index) {
-            if (dicePool[index]) {
-                dicePool[index].locked = !dicePool[index].locked;
-                document.querySelector(`.dice-scene[data-index='${index}']`).classList.toggle('locked');
+            } catch (error) {
+                console.error(error);
+                return { total: 'Error', breakdown: i18n[currentLang].errorMsg };
             }
         }
 
-        // --- All other functions (History, Drag&Drop, Shake, UI, Init) remain the same ---
-        // ... [The rest of the JavaScript code is identical to the previous full version] ...
-        function addToHistory(entry) {
-            history.unshift(entry);
-            if (history.length > 20) {
+        function handleRoll() {
+            const formula = formulaInput.value;
+            const result = parseAndRoll(formula);
+
+            resultDisplay.textContent = result.total;
+            breakdownDisplay.textContent = result.breakdown;
+            
+            // Animate result
+            resultDisplay.classList.remove('visible');
+            void resultDisplay.offsetWidth; // Trigger reflow
+            resultDisplay.classList.add('visible');
+
+            if (result.total !== 'Error') {
+                addToHistory(result);
+            }
+        }
+
+        // --- History Logic ---
+        function addToHistory(result) {
+            history.unshift(result);
+            if (history.length > 50) { // Limit history size
                 history.pop();
             }
-            localStorage.setItem('diceHistory', JSON.stringify(history));
             renderHistory();
         }
+
         function renderHistory() {
-            const historyLog = document.getElementById('historyLog');
-            historyLog.innerHTML = '';
-            history.forEach((entry, index) => {
+            historyList.innerHTML = '';
+            history.forEach(item => {
                 const li = document.createElement('li');
-                li.innerHTML = `<span>${entry}</span><button class="remove-history-btn" data-index="${index}" title="${i18n[currentLang].removeEntry}">×</button>`;
-                li.querySelector('.remove-history-btn').addEventListener('click', (e) => {
-                    const historyIndex = parseInt(e.currentTarget.dataset.index);
-                    history.splice(historyIndex, 1);
-                    localStorage.setItem('diceHistory', JSON.stringify(history));
-                    renderHistory();
-                });
-                historyLog.appendChild(li);
+                li.innerHTML = `
+                    <span class="history-breakdown">${item.breakdown}</span>
+                    <span class="history-result">${item.total}</span>
+                `;
+                historyList.appendChild(li);
             });
         }
+
         function clearHistory() {
             history = [];
-            localStorage.removeItem('diceHistory');
             renderHistory();
         }
-        function dragStart(e) {
-            isDragging = false;
-            draggedElement = e.currentTarget;
-            if (draggedElement.classList.contains('locked')) {
-                draggedElement = null;
-                return;
+
+        // --- Shake to Roll Logic ---
+        let shakeEnabled = false;
+        let lastShakeTime = 0;
+        const shakeThreshold = 15; // Acceleration threshold
+
+        function handleDeviceMotion(event) {
+            if (!shakeEnabled) return;
+
+            const now = Date.now();
+            if (now - lastShakeTime < 1000) return; // 1-second cooldown
+
+            const acc = event.accelerationIncludingGravity;
+            const magnitude = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+
+            if (magnitude > shakeThreshold) {
+                lastShakeTime = now;
+                handleRoll();
             }
-            const event = e.type === 'touchstart' ? e.touches[0] : e;
-            offsetX = event.clientX - draggedElement.offsetLeft;
-            offsetY = event.clientY - draggedElement.offsetTop;
-            document.addEventListener('mousemove', dragMove);
-            document.addEventListener('mouseup', dragEnd);
-            document.addEventListener('touchmove', dragMove, { passive: false });
-            document.addEventListener('touchend', dragEnd);
         }
-        function dragMove(e) {
-            if (!draggedElement) {
-                return;
-            }
-            e.preventDefault();
-            isDragging = true;
-            draggedElement.classList.add('dragging');
-            const event = e.type === 'touchmove' ? e.touches[0] : e;
-            const trayRect = diceTray.getBoundingClientRect();
-            let x = event.clientX - offsetX;
-            let y = event.clientY - offsetY;
-            x = Math.max(0, Math.min(x, trayRect.width - draggedElement.offsetWidth));
-            y = Math.max(0, Math.min(y, trayRect.height - draggedElement.offsetHeight));
-            draggedElement.style.left = `${x}px`;
-            draggedElement.style.top = `${y}px`;
-        }
-        function dragEnd() {
-            if (draggedElement) {
-                const index = parseInt(draggedElement.dataset.index);
-                if (!isNaN(index) && dicePool[index]) {
-                    dicePool[index].x = draggedElement.offsetLeft;
-                    dicePool[index].y = draggedElement.offsetTop;
-                }
-                draggedElement.classList.remove('dragging');
-            }
-            document.removeEventListener('mousemove', dragMove);
-            document.removeEventListener('mouseup', dragEnd);
-            document.removeEventListener('touchmove', dragMove);
-            document.removeEventListener('touchend', dragEnd);
-            setTimeout(() => {
-                draggedElement = null;
-                isDragging = false;
-            }, 0);
-        }
-        function updateEventListeners() {
-            document.querySelectorAll('.dice-scene').forEach(scene => {
-                scene.addEventListener('mousedown', dragStart);
-                scene.addEventListener('touchstart', dragStart);
-                scene.addEventListener('click', (e) => {
-                    if (!isDragging) {
-                        toggleLock(parseInt(e.currentTarget.dataset.index));
-                    }
-                });
-            });
-        }
+
+        // --- UI and Language ---
         function updateLanguage() {
             currentLang = localStorage.getItem('preferredLang') || 'ru';
             document.documentElement.lang = currentLang;
             const t = i18n[currentLang];
             
             document.getElementById('back-to-hub').textContent = t.backToHub;
-            document.getElementById('dice-pool-header').textContent = t.dicePoolHeader;
-            document.getElementById('clearPoolBtn').textContent = t.clearPoolBtn;
+            document.getElementById('rollBtn').textContent = t.rollBtn;
+            document.getElementById('formula-header').textContent = t.formulaHeader;
             document.getElementById('history-header').textContent = t.historyHeader;
+            document.getElementById('settings-header').textContent = t.settingsHeader;
+            document.getElementById('shake-label').textContent = t.shakeLabel;
             document.getElementById('clearHistoryBtn').textContent = t.clearHistoryBtn;
-            
-            const shakeStatusDisplay = document.getElementById('shake-status');
-            const currentStatusKey = shakeStatusDisplay.dataset.statusKey || 'shakeStatusDefault';
-            shakeStatusDisplay.textContent = t[currentStatusKey];
+            breakdownDisplay.textContent = t.initialBreakdown;
 
-            document.querySelectorAll('.lang-btn').forEach(b => {
-                b.classList.toggle('active', b.dataset.lang === currentLang);
-            });
-            renderHistory();
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
         }
+
+        // --- Initialization ---
         function init() {
-            document.getElementById('menu-toggle').addEventListener('click', () => {
-                document.body.classList.toggle('sidebar-open');
+            // Event Listeners
+            menuToggle.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+            rollBtn.addEventListener('click', handleRoll);
+            formulaInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') handleRoll();
             });
-            document.querySelectorAll('.dice-selector button').forEach(btn => {
+
+            document.querySelectorAll('.quick-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    addDie(parseInt(btn.dataset.sides));
+                    formulaInput.value += btn.dataset.value;
+                    formulaInput.focus();
                 });
             });
-            document.getElementById('clearPoolBtn').addEventListener('click', clearPool);
-            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
-            document.getElementById('mainRollBtn').addEventListener('click', performRoll);
+
+            clearHistoryBtn.addEventListener('click', clearHistory);
+
+            document.getElementById('shakeToRoll').addEventListener('change', e => {
+                shakeEnabled = e.target.checked;
+            });
+
+            if (window.DeviceMotionEvent) {
+                window.addEventListener('devicemotion', handleDeviceMotion);
+            } else {
+                document.getElementById('shakeToRoll').parentElement.style.display = 'none';
+            }
+
             document.querySelectorAll('.lang-btn').forEach(btn => {
                 btn.addEventListener('click', e => {
                     e.preventDefault();
@@ -825,8 +585,20 @@
                 });
             });
             
+            document.getElementById('author-signature').addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('links-popup').classList.toggle('visible');
+            });
+            document.addEventListener('click', (e) => {
+                const popup = document.getElementById('links-popup');
+                if (!popup.contains(e.target) && e.target.id !== 'author-signature') {
+                    popup.classList.remove('visible');
+                }
+            });
+
+            // Initial Setup
+            formulaInput.value = 'd20';
             updateLanguage();
-            renderDice();
             renderHistory();
         }
 
