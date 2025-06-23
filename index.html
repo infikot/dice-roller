@@ -17,6 +17,7 @@
             --button-bg: #007bff;
             --button-hover-bg: #0056b3;
             --accent-color: #007bff;
+            --delete-color: #bf616a;
             --disabled-color: #434c5e;
             --font-family: 'Inter', sans-serif;
         }
@@ -133,13 +134,9 @@
             color: var(--accent-color);
             line-height: 1;
             min-height: 150px;
-            transform: scale(0.8);
-            opacity: 0;
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-        }
-        #result-display.visible {
             transform: scale(1);
             opacity: 1;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
         }
 
         #breakdown-display {
@@ -147,6 +144,11 @@
             color: var(--secondary-text-color);
             min-height: 2rem;
             word-break: break-all;
+        }
+        /* Style for the highlighted roll result */
+        .roll-highlight {
+            color: var(--accent-color);
+            font-weight: 900;
         }
 
         .roll-button {
@@ -222,9 +224,14 @@
             border-radius: 4px;
             font-size: 0.9rem;
             font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
         .pool-item.modifier {
-            background-color: #434c5e;
+            background-color: var(--disabled-color);
+        }
+        .pool-item:hover {
+            background-color: var(--delete-color);
         }
 
         #historyList {
@@ -440,6 +447,7 @@
         let currentLang = localStorage.getItem('preferredLang') || 'ru';
         let history = [];
         let dicePool = [];
+        let isRolling = false;
 
         // --- Dice Pool Logic (Simple Mode) ---
         function addToPool(item) {
@@ -449,9 +457,10 @@
 
         function renderPool() {
             dicePoolDisplay.innerHTML = '';
-            dicePool.forEach(item => {
+            dicePool.forEach((item, index) => {
                 const span = document.createElement('span');
                 span.classList.add('pool-item');
+                span.dataset.index = index; // Add index for removal
                 if (item.type === 'dice') {
                     span.textContent = `d${item.sides}`;
                 } else {
@@ -479,7 +488,7 @@
                 if (item.type === 'dice') {
                     const roll = Math.floor(Math.random() * item.sides) + 1;
                     total += roll;
-                    breakdownParts.push(`d${item.sides}(${roll})`);
+                    breakdownParts.push(`d${item.sides}(<span class="roll-highlight">${roll}</span>)`);
                 } else {
                     total += item.value;
                     const sign = item.value > 0 ? '+' : '-';
@@ -523,7 +532,8 @@
                             rolls.push(roll);
                             termValue += roll;
                         }
-                        termBreakdown = `${numDice}d${numSides}(${rolls.join(',')})`;
+                        const highlightedRolls = rolls.map(r => `<span class="roll-highlight">${r}</span>`).join(',');
+                        termBreakdown = `${numDice}d${numSides}(${highlightedRolls})`;
                     } else {
                         termValue = parseInt(term);
                         termBreakdown = termValue.toString();
@@ -548,32 +558,47 @@
             }
         }
 
+        // --- Animation ---
+        function animateResult(finalTotal) {
+            isRolling = true;
+            rollBtn.disabled = true;
+            let animationDuration = 1000;
+            let stepTime = 50;
+            let steps = animationDuration / stepTime;
+            let currentStep = 0;
+
+            const animationInterval = setInterval(() => {
+                resultDisplay.textContent = Math.floor(Math.random() * 100);
+                currentStep++;
+                if (currentStep >= steps) {
+                    clearInterval(animationInterval);
+                    resultDisplay.textContent = finalTotal;
+                    isRolling = false;
+                    rollBtn.disabled = false;
+                }
+            }, stepTime);
+        }
+
         // --- Main Handler ---
         function handleRoll() {
+            if (isRolling) return;
+
             const formula = formulaInput.value.trim();
             let result;
 
             if (formula) {
-                // Advanced mode: use formula input
                 result = parseAndRoll(formula);
             } else {
-                // Simple mode: use dice pool
                 result = rollFromPool();
-                if (result.total !== 'Error') {
-                    clearPool(); // Clear pool after a successful roll
-                }
             }
 
-            // Display result
-            resultDisplay.textContent = result.total;
-            breakdownDisplay.textContent = result.breakdown;
-            
-            resultDisplay.classList.remove('visible');
-            void resultDisplay.offsetWidth;
-            resultDisplay.classList.add('visible');
+            breakdownDisplay.innerHTML = result.breakdown;
 
             if (result.total !== 'Error') {
+                animateResult(result.total);
                 addToHistory(result);
+            } else {
+                resultDisplay.textContent = 'Err';
             }
         }
 
@@ -604,9 +629,9 @@
         const shakeThreshold = 15;
 
         function handleDeviceMotion(event) {
-            if (!shakeEnabled) return;
+            if (!shakeEnabled || isRolling) return;
             const now = Date.now();
-            if (now - lastShakeTime < 1000) return;
+            if (now - lastShakeTime < 1500) return; // Cooldown
 
             const acc = event.accelerationIncludingGravity;
             const magnitude = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
@@ -632,7 +657,7 @@
             document.getElementById('settings-header').textContent = t.settingsHeader;
             document.getElementById('shake-label').textContent = t.shakeLabel;
             document.getElementById('clearHistoryBtn').textContent = t.clearHistoryBtn;
-            breakdownDisplay.textContent = t.initialBreakdown;
+            breakdownDisplay.innerHTML = t.initialBreakdown;
 
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
         }
@@ -651,6 +676,17 @@
             });
             document.querySelectorAll('.mod-btn').forEach(btn => {
                 btn.addEventListener('click', () => addToPool({ type: 'modifier', value: parseInt(btn.dataset.value) }));
+            });
+
+            // Click to remove from pool
+            dicePoolDisplay.addEventListener('click', (e) => {
+                if (e.target.classList.contains('pool-item')) {
+                    const index = parseInt(e.target.dataset.index, 10);
+                    if (!isNaN(index)) {
+                        dicePool.splice(index, 1);
+                        renderPool();
+                    }
+                }
             });
 
             document.getElementById('shakeToRoll').addEventListener('change', e => { shakeEnabled = e.target.checked; });
